@@ -70,29 +70,38 @@ export default function AccountPage() {
                       ? { label: "In transit 🚚", cls: "bg-green-100 text-green-700" }
                       : { label: "Delivered ✓", cls: "bg-cloud text-ink-soft" };
                   return (
-                    <li key={order.id} className="rounded-xl ring-1 ring-line p-4 hover:ring-brand-200 transition">
-                      <div className="flex flex-wrap justify-between gap-2 text-sm">
-                        <span className="font-bold text-ink">#{order.id}</span>
-                        <span className="text-mute" suppressHydrationWarning>{order.date}</span>
-                      </div>
+                    <li key={order.id}>
+                      <Link
+                        href={`/account/orders/${order.id}`}
+                        className="block rounded-xl ring-1 ring-line p-4 hover:ring-brand-200 hover:-translate-y-0.5 transition"
+                      >
+                        <div className="flex flex-wrap justify-between gap-2 text-sm">
+                          <span className="font-bold text-ink">#{order.id}</span>
+                          <span className="text-mute" suppressHydrationWarning>{order.date}</span>
+                        </div>
 
-                      <div className="mt-2 flex items-center gap-1.5">
-                        {order.items.slice(0, 5).map((it, i) => (
-                          <span key={i} className="text-lg" title={it.name}>📦</span>
-                        ))}
-                        {order.items.length > 5 && (
-                          <span className="text-xs text-mute">+{order.items.length - 5}</span>
-                        )}
-                      </div>
+                        <div className="mt-2 flex items-center gap-1.5">
+                          {order.items.slice(0, 5).map((it, i) => (
+                            <span key={i} className="text-lg" title={it.name}>📦</span>
+                          ))}
+                          {order.items.length > 5 && (
+                            <span className="text-xs text-mute">+{order.items.length - 5}</span>
+                          )}
+                        </div>
 
-                      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                        <span className="text-sm text-ink-soft">
-                          {totalQty} item{totalQty !== 1 ? "s" : ""} · {formatNaira(order.total)}
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                          <span className="text-sm text-ink-soft">
+                            {totalQty} item{totalQty !== 1 ? "s" : ""} · {formatNaira(order.total)}
+                          </span>
+                          <span className={`rounded-full text-xs font-semibold px-3 py-1 ${status.cls}`}>
+                            {status.label}
+                          </span>
+                        </div>
+
+                        <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-brand">
+                          View details →
                         </span>
-                        <span className={`rounded-full text-xs font-semibold px-3 py-1 ${status.cls}`}>
-                          {status.label}
-                        </span>
-                      </div>
+                      </Link>
                     </li>
                   );
                 })}

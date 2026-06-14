@@ -63,7 +63,7 @@ export default function OrderConfirmedPage() {
             </div>
 
             <div className="mt-6 grid sm:grid-cols-2 gap-3">
-              <Link href="/account" className="rounded-xl bg-ink hover:bg-ink-soft text-white font-semibold py-3 text-center transition">
+              <Link href={`/account/orders/${lastOrder.id}`} className="rounded-xl bg-ink hover:bg-ink-soft text-white font-semibold py-3 text-center transition">
                 Track my order
               </Link>
               <Link href="/" className="rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3 text-center transition">
