@@ -10,9 +10,9 @@ const menu = [
   { label: "My Orders", icon: <TruckIcon />, href: "/account" },
   { label: "Saved Items", icon: <HeartIcon />, href: "/wishlist" },
   { label: "My Cart", icon: <CartIcon />, href: "/cart" },
-  { label: "Returns", icon: <ReturnIcon />, href: "/account" },
-  { label: "Buyer Protection", icon: <ShieldIcon />, href: "/account" },
-  { label: "Help & Support", icon: <SupportIcon />, href: "/account" },
+  { label: "Returns", icon: <ReturnIcon />, href: "/returns" },
+  { label: "Buyer Protection", icon: <ShieldIcon />, href: "/help" },
+  { label: "Help & Support", icon: <SupportIcon />, href: "/help" },
 ];
 
 export default function AccountPage() {

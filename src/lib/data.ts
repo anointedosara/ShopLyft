@@ -165,5 +165,5 @@ export const navLinks: { label: string; href: string }[] = [
   { label: "New Arrivals", href: "/category/electronics" },
   { label: "Best Sellers", href: "/category/phones" },
   { label: "Sell on ShopLyft", href: "/account" },
-  { label: "Help Center", href: "/account" },
+  { label: "Help Center", href: "/help" },
 ];

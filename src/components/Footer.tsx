@@ -1,3 +1,16 @@
+import Link from "next/link";
+
+// known footer links that map to real routes; others stay as in-page anchors
+const linkHrefs: Record<string, string> = {
+  "Help Center": "/help",
+  "Track My Order": "/account",
+  "Returns & Refunds": "/returns",
+  "Contact Us": "/help",
+  "Today's Deals": "/deals",
+  "Flash Sales": "/deals",
+  "ShopLyft Mall": "/deals",
+};
+
 const columns = [
   {
     title: "Shop ShopLyft",
@@ -55,7 +68,11 @@ export default function Footer() {
             <ul className="space-y-2 text-sm">
               {col.links.map((l) => (
                 <li key={l}>
-                  <a href="#" className="hover:text-gold transition">{l}</a>
+                  {linkHrefs[l] ? (
+                    <Link href={linkHrefs[l]} className="hover:text-gold transition">{l}</Link>
+                  ) : (
+                    <a href="#" className="hover:text-gold transition">{l}</a>
+                  )}
                 </li>
               ))}
             </ul>
