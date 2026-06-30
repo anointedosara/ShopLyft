@@ -10,6 +10,7 @@ export default function ProductCard({ product, flash = false }: { product: Produ
   const { addToCart, toggleWishlist, isWishlisted, hydrated } = useStore();
   const pct = discountPct(product.price, product.oldPrice);
   const saved = hydrated && isWishlisted(product.id);
+  const soldOut = product.stockLeft != null && product.stockLeft <= 0;
   const sold =
     product.stockLeft != null && product.stockTotal
       ? Math.round(((product.stockTotal - product.stockLeft) / product.stockTotal) * 100)
@@ -37,9 +38,14 @@ export default function ProductCard({ product, flash = false }: { product: Produ
               -{pct}%
             </span>
           )}
-          {product.badge && (
+          {product.badge && !soldOut && (
             <span className="absolute bottom-2 left-2 rounded-md bg-white/90 text-ink text-[10px] font-bold px-2 py-1 backdrop-blur">
               {product.badge}
+            </span>
+          )}
+          {soldOut && (
+            <span className="absolute inset-0 grid place-items-center bg-white/60 backdrop-blur-[1px]">
+              <span className="rounded-md bg-ink/85 text-white text-xs font-bold px-3 py-1.5">Sold out</span>
             </span>
           )}
         </div>
@@ -91,12 +97,21 @@ export default function ProductCard({ product, flash = false }: { product: Produ
           </div>
         )}
 
-        <button
-          onClick={() => addToCart(product.id)}
-          className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-brand-50 text-brand-700 font-semibold text-sm py-2 hover:bg-brand hover:text-white transition active:scale-[0.98]"
-        >
-          <CartIcon width={16} height={16} /> Add to cart
-        </button>
+        {soldOut ? (
+          <button
+            disabled
+            className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-cloud text-mute font-semibold text-sm py-2 cursor-not-allowed"
+          >
+            Sold out
+          </button>
+        ) : (
+          <button
+            onClick={() => addToCart(product.id)}
+            className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-brand-50 text-brand-700 font-semibold text-sm py-2 hover:bg-brand hover:text-white transition active:scale-[0.98]"
+          >
+            <CartIcon width={16} height={16} /> Add to cart
+          </button>
+        )}
       </div>
     </article>
   );

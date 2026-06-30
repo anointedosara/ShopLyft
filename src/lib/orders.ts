@@ -20,6 +20,31 @@ export type NewOrderInput = {
   items: { productId: string; qty: number }[];
 };
 
+export type StockIssue = { productId: string; name: string; available: number; requested: number };
+
+// Validates requested quantities against live stock. Returns the lines that
+// can't be fulfilled — sold out (available 0) or not enough left. Products with
+// null stockLeft are untracked (treated as unlimited) and never flagged.
+export async function checkStock(items: { productId: string; qty: number }[]): Promise<StockIssue[]> {
+  const ids = items.map((i) => i.productId);
+  const products = await prisma.product.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, name: true, stockLeft: true },
+  });
+  const byId = new Map(products.map((p) => [p.id, p]));
+
+  const issues: StockIssue[] = [];
+  for (const item of items) {
+    const p = byId.get(item.productId);
+    if (!p || p.stockLeft == null) continue; // unknown items are dropped at order time; null = untracked
+    const requested = Math.max(1, Math.floor(item.qty));
+    if (p.stockLeft < requested) {
+      issues.push({ productId: p.id, name: p.name, available: p.stockLeft, requested });
+    }
+  }
+  return issues;
+}
+
 export async function getSessionUser() {
   const session = await auth.api.getSession({ headers: await headers() });
   return session?.user ?? null;
@@ -29,18 +54,22 @@ export async function createOrderForUser(userId: string, input: NewOrderInput) {
   const ids = input.items.map((i) => i.productId);
   const products = await prisma.product.findMany({
     where: { id: { in: ids } },
-    select: { id: true, name: true, price: true, storeId: true },
+    select: { id: true, name: true, price: true, storeId: true, stockLeft: true },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
   // Rebuild every line from DB data; drop anything that no longer exists.
   // storeId is snapshotted onto the line so each seller can later see and
-  // fulfil the items that belong to their store.
+  // fulfil the items that belong to their store. Quantities are clamped to the
+  // available stock (sold-out lines fall away) so an order can never exceed it —
+  // a backstop in case stock changed after the checkout-time check.
   const lines = input.items
     .map((i) => {
       const p = byId.get(i.productId);
-      const qty = Math.max(1, Math.floor(i.qty));
-      return p ? { productId: p.id, name: p.name, price: p.price, storeId: p.storeId, qty } : null;
+      if (!p) return null;
+      const requested = Math.max(1, Math.floor(i.qty));
+      const qty = p.stockLeft != null ? Math.min(requested, p.stockLeft) : requested;
+      return qty > 0 ? { productId: p.id, name: p.name, price: p.price, storeId: p.storeId, qty } : null;
     })
     .filter((l): l is { productId: string; name: string; price: number; storeId: string; qty: number } => l !== null);
 

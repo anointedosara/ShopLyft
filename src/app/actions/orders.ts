@@ -1,10 +1,26 @@
 "use server";
 
 import { headers } from "next/headers";
-import { getSessionUser, createOrderForUser, type NewOrderInput } from "@/lib/orders";
+import { getSessionUser, createOrderForUser, checkStock, type NewOrderInput, type StockIssue } from "@/lib/orders";
 import { initializeTransaction } from "@/lib/paystack";
 
 type StartPaymentResult = { ok: true; authorizationUrl: string } | { ok: false; error: string };
+
+// Lets the cart/checkout UI show live stock state without exposing the DB layer
+// to the client. Returns only the problem lines (sold out / not enough left).
+export async function checkCartStockAction(
+  items: { productId: string; qty: number }[]
+): Promise<StockIssue[]> {
+  if (!items?.length) return [];
+  return checkStock(items);
+}
+
+function stockErrorMessage(issues: StockIssue[]): string {
+  const parts = issues.map((i) =>
+    i.available <= 0 ? `${i.name} is sold out` : `only ${i.available} left of ${i.name}`
+  );
+  return `Some items are no longer available: ${parts.join(", ")}. Update your cart and try again.`;
+}
 
 // Creates a PENDING order (DB-authoritative pricing) and starts a Paystack
 // transaction for it, returning the URL the browser should redirect to.
@@ -16,6 +32,10 @@ export async function startPaymentAction(input: NewOrderInput): Promise<StartPay
   if (!input.name?.trim() || !input.address?.trim()) {
     return { ok: false, error: "Please provide your name and delivery address." };
   }
+
+  // Block checkout if anything in the cart is sold out or short on stock.
+  const issues = await checkStock(input.items);
+  if (issues.length) return { ok: false, error: stockErrorMessage(issues) };
 
   let order;
   try {

@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/context/StoreProvider";
 import { formatNaira } from "@/lib/data";
+import { checkCartStockAction } from "@/app/actions/orders";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { CartIcon } from "@/components/icons";
 
@@ -12,6 +14,27 @@ const FREE_OVER = 50000;
 export default function CartPage() {
   const { cartLines, subtotal, setQty, removeFromCart, clearCart, hydrated } = useStore();
 
+  // Live stock check against the DB (the cart itself reads a static catalog).
+  // Keyed by productId → how many are actually available for the flagged lines.
+  const [stockIssues, setStockIssues] = useState<Record<string, number>>({});
+  const cartKey = cartLines.map((l) => `${l.product.id}:${l.qty}`).join(",");
+
+  useEffect(() => {
+    if (!hydrated || cartLines.length === 0) return;
+    let active = true;
+    checkCartStockAction(cartLines.map((l) => ({ productId: l.product.id, qty: l.qty })))
+      .then((issues) => {
+        if (active) setStockIssues(Object.fromEntries(issues.map((i) => [i.productId, i.available])));
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cartKey, hydrated]);
+
+  // Only count issues for items still in the cart (stale keys clear on next fetch).
+  const hasStockBlocker = cartLines.some((l) => stockIssues[l.product.id] != null);
   const delivery = subtotal >= FREE_OVER || subtotal === 0 ? 0 : DELIVERY;
   const total = subtotal + delivery;
 
@@ -58,6 +81,13 @@ export default function CartPage() {
                 </Link>
                 <p className="text-xs text-mute mt-0.5">{l.product.brand}</p>
                 <p className="font-display font-bold text-ink mt-1">{formatNaira(l.product.price)}</p>
+                {stockIssues[l.product.id] != null && (
+                  <p className={`mt-1 text-xs font-semibold ${stockIssues[l.product.id] <= 0 ? "text-red-600" : "text-amber-600"}`}>
+                    {stockIssues[l.product.id] <= 0
+                      ? "Sold out — remove to continue"
+                      : `Only ${stockIssues[l.product.id]} left — reduce quantity`}
+                  </p>
+                )}
 
                 <div className="mt-2 flex items-center justify-between">
                   <div className="flex items-center rounded-lg ring-1 ring-line overflow-hidden">
@@ -110,13 +140,29 @@ export default function CartPage() {
               </div>
             </div>
 
-            <Link
-              href="/checkout"
-              className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3.5 transition active:scale-[0.98] shadow-[var(--shadow-pop)]"
-            >
-              <CartIcon width={18} height={18} /> Proceed to checkout
-            </Link>
-            <p className="mt-3 text-center text-xs text-mute">Secure checkout · easy 7-day returns</p>
+            {hasStockBlocker ? (
+              <>
+                <button
+                  disabled
+                  className="mt-5 w-full flex items-center justify-center gap-2 rounded-xl bg-cloud text-mute font-semibold py-3.5 cursor-not-allowed"
+                >
+                  Proceed to checkout
+                </button>
+                <p className="mt-3 text-center text-xs text-red-600">
+                  Update the highlighted items above to continue.
+                </p>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/checkout"
+                  className="mt-5 flex items-center justify-center gap-2 rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3.5 transition active:scale-[0.98] shadow-[var(--shadow-pop)]"
+                >
+                  <CartIcon width={18} height={18} /> Proceed to checkout
+                </Link>
+                <p className="mt-3 text-center text-xs text-mute">Secure checkout · easy 7-day returns</p>
+              </>
+            )}
           </div>
         </aside>
       </div>

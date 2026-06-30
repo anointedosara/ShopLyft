@@ -5,6 +5,7 @@ import { BoltIcon } from "./icons";
 
 export default function Newsletter() {
   const [sent, setSent] = useState(false);
+  const [email, setEmail] = useState("");
 
   return (
     <section className="mx-auto max-w-[1280px] px-3 sm:px-5 py-6 sm:py-10">
@@ -28,12 +29,15 @@ export default function Newsletter() {
             onSubmit={(e) => {
               e.preventDefault();
               setSent(true);
+              setEmail(""); // clear the field once subscribed
             }}
             className="flex flex-col sm:flex-row gap-3"
           >
             <input
               required
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
               className="flex-1 rounded-xl px-4 py-3.5 text-ink outline-none ring-2 ring-transparent focus:ring-gold"
             />

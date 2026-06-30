@@ -49,9 +49,9 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  scroll-behavior: smooth;
-}
+/* No global smooth scroll: it makes back/forward navigation animate to the
+   restored scroll position instead of landing there instantly. Components that
+   want smooth scrolling (carousels, anchor rails) opt in locally. */
 
 body {
   background: var(--background);
