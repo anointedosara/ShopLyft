@@ -17,7 +17,7 @@ export default function ProductCard({ product, flash = false }: { product: Produ
       : null;
 
   return (
-    <article className="group relative flex flex-col bg-white rounded-2xl overflow-hidden ring-1 ring-line hover:ring-brand-200 hover:shadow-[var(--shadow-card)] transition-all duration-300">
+    <article className="group relative flex flex-col w-[150px] sm:w-auto bg-white rounded-2xl overflow-hidden ring-1 ring-line hover:ring-brand-200 hover:shadow-[var(--shadow-card)] transition-all duration-300">
       <Link href={`/product/${product.id}`} className="block">
         <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${product.gradient}`}>
           {product.image ? (
