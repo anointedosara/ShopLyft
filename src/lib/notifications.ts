@@ -44,16 +44,26 @@ function appUrl(href?: string | null): string | null {
   return base ? `${base}${href.startsWith("/") ? "" : "/"}${href}` : null;
 }
 
+// Escape user-controlled text before interpolating it into outbound HTML
+// (store names, admin rejection reasons, etc. flow into title/body).
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // Minimal branded HTML for a notification email.
 function renderEmail(title: string, body: string, href?: string | null): string {
   const link = appUrl(href);
   const cta = link
-    ? `<p style="margin:24px 0 0"><a href="${link}" style="background:#c2540a;color:#fff;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;display:inline-block">View on ShopLyft</a></p>`
+    ? `<p style="margin:24px 0 0"><a href="${esc(link)}" style="background:#c2540a;color:#fff;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;display:inline-block">View on ShopLyft</a></p>`
     : "";
   return `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;color:#1c1917">
     <p style="font-weight:800;font-size:20px;margin:0 0 4px">Shop<span style="color:#c2540a">Lyft</span></p>
-    <h1 style="font-size:18px;margin:16px 0 8px">${title}</h1>
-    <p style="font-size:14px;line-height:1.6;color:#44403c;margin:0">${body}</p>
+    <h1 style="font-size:18px;margin:16px 0 8px">${esc(title)}</h1>
+    <p style="font-size:14px;line-height:1.6;color:#44403c;margin:0">${esc(body)}</p>
     ${cta}
   </div>`;
 }

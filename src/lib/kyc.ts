@@ -356,29 +356,35 @@ export async function submitVerification(userId: string, ipAddress?: string | nu
     }),
   ]);
 
-  // Confirm to the seller…
-  await notify({
-    userId,
-    type: "VERIFICATION_SUBMITTED",
-    title: "Verification submitted",
-    body: "Your seller application is under review. We'll let you know once it's been checked.",
-    href: "/seller/verification",
-  });
+  // Notifications are best-effort — the application is already submitted, so a
+  // failure here must not surface as an error (or the seller may wrongly resubmit).
+  try {
+    // Confirm to the seller…
+    await notify({
+      userId,
+      type: "VERIFICATION_SUBMITTED",
+      title: "Verification submitted",
+      body: "Your seller application is under review. We'll let you know once it's been checked.",
+      href: "/seller/verification",
+    });
 
-  // …and alert every admin that a new application is waiting.
-  const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true, email: true } });
-  await Promise.all(
-    admins.map((a) =>
-      notify({
-        userId: a.id,
-        type: "VERIFICATION_SUBMITTED",
-        title: "New seller application",
-        body: `${ctx.store.name} submitted a verification application for review.`,
-        href: `/admin/sellers/${v.id}`,
-        toEmail: a.email,
-      })
-    )
-  );
+    // …and alert every admin that a new application is waiting.
+    const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true, email: true } });
+    await Promise.all(
+      admins.map((a) =>
+        notify({
+          userId: a.id,
+          type: "VERIFICATION_SUBMITTED",
+          title: "New seller application",
+          body: `${ctx.store.name} submitted a verification application for review.`,
+          href: `/admin/sellers/${v.id}`,
+          toEmail: a.email,
+        })
+      )
+    );
+  } catch {
+    // swallow — submission already committed
+  }
 
   return { ok: true };
 }

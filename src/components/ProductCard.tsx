@@ -53,7 +53,7 @@ export default function ProductCard({ product, flash = false }: { product: Produ
 
       <button
         aria-label={saved ? "Remove from saved" : "Save item"}
-        onClick={() => toggleWishlist(product.id)}
+        onClick={() => toggleWishlist(product)}
         className={`absolute top-2 right-2 z-10 grid place-items-center w-9 h-9 rounded-full shadow transition ${
           saved ? "bg-brand text-white" : "bg-white/90 text-ink hover:text-brand"
         }`}
@@ -106,7 +106,7 @@ export default function ProductCard({ product, flash = false }: { product: Produ
           </button>
         ) : (
           <button
-            onClick={() => addToCart(product.id)}
+            onClick={() => addToCart(product)}
             className="mt-3 flex items-center justify-center gap-2 rounded-lg bg-brand-50 text-brand-700 font-semibold text-sm py-2 hover:bg-brand hover:text-white transition active:scale-[0.98]"
           >
             <CartIcon width={16} height={16} /> Add to cart

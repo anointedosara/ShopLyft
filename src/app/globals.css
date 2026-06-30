@@ -74,3 +74,13 @@ body {
 
 /* GSAP reveal initial state (avoids flash before JS) */
 .reveal-init { opacity: 0; transform: translateY(28px); }
+
+/* Hero product showcase — gentle autonomous float (no cursor interaction) */
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-16px); }
+}
+.hero-float { animation: heroFloat 7s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .hero-float { animation: none; }
+}

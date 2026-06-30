@@ -36,8 +36,15 @@ export async function checkStock(items: { productId: string; qty: number }[]): P
   const issues: StockIssue[] = [];
   for (const item of items) {
     const p = byId.get(item.productId);
-    if (!p || p.stockLeft == null) continue; // unknown items are dropped at order time; null = untracked
     const requested = Math.max(1, Math.floor(item.qty));
+    if (!p) {
+      // Product was removed from the catalog — treat as unavailable so the cart
+      // flags it and checkout is blocked (otherwise it silently drops at order
+      // time and the charged total wouldn't match what the buyer saw).
+      issues.push({ productId: item.productId, name: "This item", available: 0, requested });
+      continue;
+    }
+    if (p.stockLeft == null) continue; // untracked = unlimited
     if (p.stockLeft < requested) {
       issues.push({ productId: p.id, name: p.name, available: p.stockLeft, requested });
     }
@@ -58,20 +65,19 @@ export async function createOrderForUser(userId: string, input: NewOrderInput) {
   });
   const byId = new Map(products.map((p) => [p.id, p]));
 
-  // Rebuild every line from DB data; drop anything that no longer exists.
-  // storeId is snapshotted onto the line so each seller can later see and
-  // fulfil the items that belong to their store. Quantities are clamped to the
-  // available stock (sold-out lines fall away) so an order can never exceed it —
-  // a backstop in case stock changed after the checkout-time check.
-  const lines = input.items
-    .map((i) => {
-      const p = byId.get(i.productId);
-      if (!p) return null;
-      const requested = Math.max(1, Math.floor(i.qty));
-      const qty = p.stockLeft != null ? Math.min(requested, p.stockLeft) : requested;
-      return qty > 0 ? { productId: p.id, name: p.name, price: p.price, storeId: p.storeId, qty } : null;
-    })
-    .filter((l): l is { productId: string; name: string; price: number; storeId: string; qty: number } => l !== null);
+  // Rebuild every line from DB data. storeId is snapshotted onto the line so each
+  // seller can later see and fulfil the items that belong to their store. If a
+  // product vanished or is short on stock (a race after the checkout-time
+  // checkStock gate), fail loudly rather than silently shrinking a paid order —
+  // the buyer must re-confirm what they're actually buying and paying for.
+  const lines: { productId: string; name: string; price: number; storeId: string; qty: number }[] = [];
+  for (const i of input.items) {
+    const p = byId.get(i.productId);
+    if (!p) throw new Error("ITEM_UNAVAILABLE");
+    const qty = Math.max(1, Math.floor(i.qty));
+    if (p.stockLeft != null && p.stockLeft < qty) throw new Error("INSUFFICIENT_STOCK");
+    lines.push({ productId: p.id, name: p.name, price: p.price, storeId: p.storeId, qty });
+  }
 
   if (lines.length === 0) throw new Error("No valid items to order");
 
@@ -127,10 +133,13 @@ export async function markOrderPaid(orderId: string, paystackRef: string, paidAm
       return { ok: true as const, alreadyPaid: true, order };
     }
 
-    // Decrement stock for items that track it.
+    // Decrement stock for items that track it. The `gte` guard makes the
+    // decrement atomic — it can never drive stockLeft below 0 even if two
+    // payments for the last units settle concurrently (the loser simply
+    // doesn't match and isn't decremented).
     for (const item of order.items) {
       await tx.product.updateMany({
-        where: { id: item.productId, stockLeft: { not: null } },
+        where: { id: item.productId, stockLeft: { gte: item.qty } },
         data: { stockLeft: { decrement: item.qty } },
       });
     }

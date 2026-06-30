@@ -1,22 +1,25 @@
 "use client";
 
 import { useRef } from "react";
-import dynamic from "next/dynamic";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { BoltIcon, TruckIcon, ShieldIcon } from "../icons";
+import HeroShowcase, { type HeroProduct } from "./HeroShowcase";
 
-const HeroScene = dynamic(() => import("./HeroScene"), {
-  ssr: false,
-  loading: () => <div className="absolute inset-0" />,
-});
-
-export default function Hero() {
+export default function Hero({ products }: { products: HeroProduct[] }) {
   const root = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+      const targets = [".hero-eyebrow", ".hero-line", ".hero-sub", ".hero-cta", ".hero-stat", ".hero-canvas"];
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        // Safety net: once the intro finishes, strip the inline opacity/transform
+        // GSAP added so every element reverts to its natural (visible) state. A
+        // single tween getting killed mid-flight (React re-render / overwrite)
+        // was leaving the CTAs stuck at opacity 0.
+        onComplete: () => gsap.set(targets, { clearProps: "opacity,transform" }),
+      });
       tl.from(".hero-eyebrow", { opacity: 0, y: 20, duration: 0.5 })
         .from(".hero-line", { opacity: 0, y: 40, duration: 0.8, stagger: 0.12 }, "-=0.2")
         .from(".hero-sub", { opacity: 0, y: 20, duration: 0.6 }, "-=0.4")
@@ -84,12 +87,9 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* 3D canvas */}
-        <div className="hero-canvas relative h-[300px] sm:h-[400px] lg:h-[500px]">
-          <HeroScene />
-          <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-widest text-white/40">
-            drag your cursor — it reacts
-          </div>
+        {/* floating product showcase — desktop only; mobile keeps a clean text hero */}
+        <div className="hero-canvas relative hidden lg:block lg:h-[500px]">
+          <HeroShowcase products={products} />
         </div>
       </div>
     </section>

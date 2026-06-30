@@ -6,11 +6,18 @@ import { verifyTransaction } from "@/lib/paystack";
 // events here, signed with HMAC-SHA512 of the raw body using the secret key.
 export async function POST(request: Request) {
   const secret = process.env.PAYSTACK_SECRET_KEY ?? "";
+  // A missing secret must never accept a forged-but-consistent HMAC.
+  if (!secret) {
+    return new Response("Webhook not configured", { status: 503 });
+  }
+
   const body = await request.text();
   const signature = request.headers.get("x-paystack-signature");
 
-  const expected = crypto.createHmac("sha512", secret).update(body).digest("hex");
-  if (!signature || signature !== expected) {
+  const expected = crypto.createHmac("sha512", secret).update(body).digest();
+  const provided = Buffer.from(signature ?? "", "hex");
+  // Constant-time compare (after a length check, which timingSafeEqual requires).
+  if (provided.length !== expected.length || !crypto.timingSafeEqual(provided, expected)) {
     return new Response("Invalid signature", { status: 401 });
   }
 

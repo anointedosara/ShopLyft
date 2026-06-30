@@ -21,7 +21,7 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
 
   const buyNow = () => {
     if (soldOut) return;
-    addToCart(product.id, qty);
+    addToCart(product, qty);
     router.push("/checkout");
   };
 
@@ -99,7 +99,7 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
             <button disabled={soldOut || qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))} className="px-4 py-3 text-lg font-bold text-ink hover:bg-cloud disabled:cursor-not-allowed disabled:text-mute" aria-label="Increase quantity">+</button>
           </div>
           <button
-            onClick={() => toggleWishlist(product.id)}
+            onClick={() => toggleWishlist(product)}
             aria-label="Toggle wishlist"
             className={`grid place-items-center w-12 h-12 rounded-xl ring-1 transition ${
               saved ? "bg-brand text-white ring-brand" : "bg-white text-ink ring-line hover:text-brand"
@@ -122,7 +122,7 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
         ) : (
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
-              onClick={() => addToCart(product.id, qty)}
+              onClick={() => addToCart(product, qty)}
               className="flex items-center justify-center gap-2 rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3.5 transition active:scale-[0.98] shadow-[var(--shadow-pop)]"
             >
               <CartIcon width={18} height={18} /> Add to cart

@@ -24,7 +24,7 @@ export default async function Home() {
       <section className="mx-auto max-w-[1280px] px-3 sm:px-5 pt-4">
         <div className="grid lg:grid-cols-[240px_1fr] gap-4">
           <CategorySidebar />
-          <Hero />
+          <Hero products={(flashSales.length ? flashSales : topDeals).slice(0, 4)} />
         </div>
       </section>
 

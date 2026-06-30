@@ -50,6 +50,12 @@ export async function createProduct(storeId: string, data: ProductInput) {
 export async function updateProduct(storeId: string, productId: string, data: ProductInput) {
   const existing = await getSellerProduct(storeId, productId);
   if (!existing) return null;
+  // The form's "Stock" field is the available quantity (it's prefilled from
+  // stockLeft). Set stockLeft to it, but only ever GROW stockTotal — otherwise
+  // editing an unrelated field (name, price, image) would reset stockLeft and
+  // resurrect already-sold units. stockTotal is the lifetime denominator used
+  // for the "% sold" display.
+  const stockTotal = Math.max(existing.stockTotal ?? 0, data.stock);
   return prisma.product.update({
     where: { id: productId },
     data: {
@@ -59,7 +65,7 @@ export async function updateProduct(storeId: string, productId: string, data: Pr
       price: data.price,
       oldPrice: data.oldPrice ?? null,
       stockLeft: data.stock,
-      stockTotal: data.stock,
+      stockTotal,
       image: data.image ?? null,
     },
   });
