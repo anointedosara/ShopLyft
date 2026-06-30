@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  /* Brand palette — ShopLyft (Jumia-inspired warm orange) */
+  --color-brand: #f97316;
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-500: #f97316;
+  --color-brand-600: #ea6c0b;
+  --color-brand-700: #c2540a;
+  --color-ink: #16161d;
+  --color-ink-soft: #2b2b36;
+  --color-night: #0b0c12;
+  --color-cloud: #f4f5f7;
+  --color-mute: #6b7280;
+  --color-line: #e7e8ec;
+  --color-accent: #14b8a6;
+  --color-gold: #ffb800;
+
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+
+  --shadow-card: 0 1px 2px rgba(16, 16, 29, 0.04), 0 8px 24px rgba(16, 16, 29, 0.06);
+  --shadow-pop: 0 10px 40px rgba(249, 115, 22, 0.28);
+
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-spin-slow: spin 14s linear infinite;
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+:root {
+  --background: #f4f5f7;
+  --foreground: #16161d;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), system-ui, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* hide scrollbars on horizontal carousels but keep scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.text-gradient {
+  background: linear-gradient(90deg, #f97316, #fb923c, #ffb800);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* GSAP reveal initial state (avoids flash before JS) */
+.reveal-init { opacity: 0; transform: translateY(28px); }
