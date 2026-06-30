@@ -12,11 +12,11 @@ function pad(n: number) {
 
 export default function FlashSales({ products }: { products: Product[] }) {
   const rail = useRef<HTMLDivElement>(null);
-  // Countdown — fixed 8h window from first client render (avoids SSR mismatch)
+  // Countdown — fixed 48h window from first client render (avoids SSR mismatch)
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
-    const end = Date.now() + 8 * 60 * 60 * 1000;
+    const end = Date.now() + 48 * 60 * 60 * 1000;
     const tick = () => setRemaining(Math.max(0, end - Date.now()));
     tick();
     const id = setInterval(tick, 1000);
