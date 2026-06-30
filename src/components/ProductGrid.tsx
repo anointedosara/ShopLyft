@@ -1,11 +1,14 @@
 import type { Product } from "@/lib/data";
 import ProductCard from "./ProductCard";
+import { SearchEmptyIcon } from "./icons";
 
 export default function ProductGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
     return (
       <div className="rounded-2xl bg-white ring-1 ring-line p-12 text-center">
-        <p className="text-5xl mb-3">🔍</p>
+        <span className="mx-auto grid place-items-center w-14 h-14 rounded-full bg-cloud text-mute mb-3">
+          <SearchEmptyIcon width={24} height={24} />
+        </span>
         <p className="font-display font-bold text-lg text-ink">No products found</p>
         <p className="text-mute text-sm mt-1">Try a different search or browse our categories.</p>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { type Product, formatNaira, discountPct } from "@/lib/data";
 import { useStore } from "@/context/StoreProvider";
 import { StarIcon, HeartIcon, CartIcon } from "./icons";
@@ -17,10 +18,20 @@ export default function ProductCard({ product, flash = false }: { product: Produ
   return (
     <article className="group relative flex flex-col bg-white rounded-2xl overflow-hidden ring-1 ring-line hover:ring-brand-200 hover:shadow-[var(--shadow-card)] transition-all duration-300">
       <Link href={`/product/${product.id}`} className="block">
-        <div className={`relative aspect-square bg-gradient-to-br ${product.gradient} flex items-center justify-center`}>
-          <span className="text-6xl sm:text-7xl drop-shadow-md transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6">
-            {product.glyph}
-          </span>
+        <div className={`relative aspect-square overflow-hidden bg-gradient-to-br ${product.gradient}`}>
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              sizes="(max-width: 640px) 44vw, 230px"
+              className="object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <span className="absolute inset-0 grid place-items-center text-6xl sm:text-7xl drop-shadow-md transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-6">
+              {product.glyph}
+            </span>
+          )}
           {pct > 0 && (
             <span className="absolute top-2 left-2 rounded-md bg-ink/85 text-white text-xs font-bold px-2 py-1">
               -{pct}%

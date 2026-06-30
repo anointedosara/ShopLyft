@@ -2,24 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useStore } from "@/context/StoreProvider";
+import { useSession } from "@/lib/auth-client";
+import { startPaymentAction } from "@/app/actions/orders";
 import { formatNaira } from "@/lib/data";
 import Breadcrumbs from "@/components/Breadcrumbs";
+import { LockIcon, CartIcon } from "@/components/icons";
 
 const DELIVERY = 1500;
 const FREE_OVER = 50000;
-const payMethods = [
-  { id: "card", label: "Debit / Credit Card", glyph: "💳" },
-  { id: "transfer", label: "Bank Transfer", glyph: "🏦" },
-  { id: "ussd", label: "USSD", glyph: "📲" },
-  { id: "delivery", label: "Pay on Delivery", glyph: "🚚" },
-];
+const payMethods = ["Card", "Bank transfer", "USSD"];
 
 export default function CheckoutPage() {
-  const { cartLines, subtotal, placeOrder, hydrated } = useStore();
-  const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "", pay: "card" });
+  const { cartLines, subtotal, hydrated } = useStore();
+  const { data: session, isPending } = useSession();
+  const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", city: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const delivery = subtotal >= FREE_OVER || subtotal === 0 ? 0 : DELIVERY;
   const total = subtotal + delivery;
@@ -27,18 +26,52 @@ export default function CheckoutPage() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const order = placeOrder({ name: form.name, address: `${form.address}, ${form.city}` });
-    if (order) router.push("/order-confirmed");
+    setError(null);
+    setSubmitting(true);
+    const res = await startPaymentAction({
+      name: form.name,
+      address: `${form.address}, ${form.city}`,
+      items: cartLines.map((l) => ({ productId: l.product.id, qty: l.qty })),
+    });
+    if (!res.ok) {
+      setSubmitting(false);
+      setError(res.error);
+      return;
+    }
+    // Hand off to Paystack's hosted checkout (stay "submitting" through the redirect).
+    window.location.href = res.authorizationUrl;
   };
+
+  // Require login to place an order (so it attaches to the account & order history).
+  if (!isPending && !session) {
+    return (
+      <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">
+        <Breadcrumbs items={[{ label: "Cart", href: "/cart" }, { label: "Checkout" }]} />
+        <div className="mx-auto mt-6 w-full max-w-md rounded-3xl bg-white ring-1 ring-line p-8 text-center">
+          <span className="mx-auto grid place-items-center w-16 h-16 rounded-full bg-brand-50 text-brand mb-3">
+            <LockIcon width={28} height={28} />
+          </span>
+          <h1 className="font-display font-extrabold text-2xl text-ink">Sign in to check out</h1>
+          <p className="text-mute mt-2">Sign in so we can save your order and let you track it.</p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link href="/login" className="rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3 transition">Sign in</Link>
+            <Link href="/signup" className="rounded-xl bg-cloud hover:bg-brand-50 text-ink font-semibold py-3 transition">Create an account</Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (hydrated && cartLines.length === 0) {
     return (
       <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">
         <Breadcrumbs items={[{ label: "Checkout" }]} />
         <div className="mt-6 rounded-3xl bg-white ring-1 ring-line p-12 text-center">
-          <p className="text-6xl mb-4">🧾</p>
+          <span className="mx-auto grid place-items-center w-16 h-16 rounded-full bg-cloud text-mute mb-4">
+            <CartIcon width={28} height={28} />
+          </span>
           <h1 className="font-display font-extrabold text-2xl text-ink">Nothing to check out</h1>
           <p className="text-mute mt-2">Your cart is empty.</p>
           <Link href="/deals" className="inline-flex mt-6 rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold px-6 py-3 transition">
@@ -89,21 +122,18 @@ export default function CheckoutPage() {
           <section className="rounded-2xl bg-white ring-1 ring-line p-5">
             <h2 className="font-display font-bold text-ink mb-4 flex items-center gap-2">
               <span className="grid place-items-center w-6 h-6 rounded-full bg-brand text-white text-xs">3</span>
-              Payment method
+              Payment
             </h2>
-            <div className="grid sm:grid-cols-2 gap-3">
+            <p className="text-sm text-mute mb-3">
+              You&apos;ll complete payment securely on the next step. Choose card, bank transfer or USSD there.
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
               {payMethods.map((m) => (
-                <label
-                  key={m.id}
-                  className={`flex items-center gap-3 rounded-xl ring-1 px-4 py-3 cursor-pointer transition ${
-                    form.pay === m.id ? "ring-brand bg-brand-50" : "ring-line hover:ring-brand-200"
-                  }`}
-                >
-                  <input type="radio" name="pay" checked={form.pay === m.id} onChange={() => setForm((f) => ({ ...f, pay: m.id }))} className="accent-brand" />
-                  <span className="text-xl">{m.glyph}</span>
-                  <span className="text-sm font-medium text-ink">{m.label}</span>
-                </label>
+                <span key={m} className="rounded-lg bg-cloud ring-1 ring-line px-3 py-1.5 text-sm font-medium text-ink-soft">
+                  {m}
+                </span>
               ))}
+              <span className="ml-auto text-xs text-mute">Secured by Paystack</span>
             </div>
           </section>
         </div>
@@ -134,10 +164,17 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            <button type="submit" className="mt-5 w-full rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3.5 transition active:scale-[0.98] shadow-[var(--shadow-pop)]">
-              Place order
+            {error && (
+              <p className="mt-4 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</p>
+            )}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="mt-5 w-full rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold py-3.5 transition active:scale-[0.98] shadow-[var(--shadow-pop)] disabled:opacity-60"
+            >
+              {submitting ? "Redirecting to payment…" : `Pay ${formatNaira(total)}`}
             </button>
-            <p className="mt-3 text-center text-xs text-mute">By placing your order you agree to ShopLyft&apos;s terms.</p>
+            <p className="mt-3 text-center text-xs text-mute">Secure payment via Paystack. You agree to ShopLyft&apos;s terms.</p>
           </div>
         </aside>
       </form>

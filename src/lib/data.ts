@@ -6,6 +6,7 @@ export type Category = {
   name: string;
   glyph: string;
   gradient: string;
+  image?: string;
 };
 
 export type Spec = { label: string; value: string };
@@ -25,6 +26,7 @@ export type Product = {
   stockLeft?: number;
   stockTotal?: number;
   tags: string[]; // "flash" | "deal" | "rec"
+  image?: string;
 };
 
 export type EnrichedProduct = Product & {
@@ -39,7 +41,42 @@ export const formatNaira = (value: number) =>
 export const discountPct = (price: number, oldPrice?: number) =>
   oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;
 
-export const categories: Category[] = [
+// Real product/category imagery. We pin a stable photo per item via loremflickr's
+// `lock` param so each item keeps the same picture across renders. Each URL is just
+// a DB field, so any photo can be swapped later by editing that row.
+const buildImg = (keyword: string, lock: number) =>
+  `https://loremflickr.com/600/600/${keyword}?lock=${lock}`;
+
+const categoryImageKeyword: Record<string, string> = {
+  phones: "smartphone",
+  electronics: "electronics",
+  fashion: "fashion",
+  home: "furniture",
+  beauty: "cosmetics",
+  grocery: "supermarket",
+  gaming: "videogame",
+  computing: "laptop",
+  baby: "baby",
+  sports: "fitness",
+  automobile: "car",
+  books: "books",
+};
+
+const productImageKeyword: Record<string, string> = {
+  fs1: "headphones", fs2: "smartphone", fs3: "airfryer", fs4: "smartwatch",
+  fs5: "television", fs6: "gamepad", fs7: "espresso", fs8: "skincare",
+  td1: "earbuds", td2: "laptop", td3: "diffuser", td4: "powerbank",
+  td5: "knife", td6: "dumbbell", td7: "keyboard", td8: "sunglasses",
+  rc1: "sneakers", rc2: "waterbottle", rc3: "candle", rc4: "backpack",
+  rc5: "lighting", rc6: "blanket", rc7: "socket", rc8: "coffee",
+  ph1: "smartphone", ph2: "tablet", gr1: "groceries", gr2: "juice",
+  bb1: "diapers", bb2: "baby", au1: "dashcam", au2: "vacuum",
+  bk1: "books", bk2: "notebook", fa1: "denim", fa2: "handbag",
+  be1: "lipstick", be2: "hairdryer", ga1: "console", ga2: "headset",
+  co1: "monitor", co2: "mouse",
+};
+
+const categoryDefs: Omit<Category, "image">[] = [
   { id: "phones", name: "Phones & Tablets", glyph: "📱", gradient: "from-sky-400 to-blue-600" },
   { id: "electronics", name: "Electronics", glyph: "🔌", gradient: "from-violet-400 to-indigo-600" },
   { id: "fashion", name: "Fashion", glyph: "👗", gradient: "from-pink-400 to-rose-600" },
@@ -53,6 +90,11 @@ export const categories: Category[] = [
   { id: "automobile", name: "Automobile", glyph: "🚗", gradient: "from-zinc-400 to-zinc-700" },
   { id: "books", name: "Books & Media", glyph: "📚", gradient: "from-orange-400 to-red-600" },
 ];
+
+export const categories: Category[] = categoryDefs.map((c, i) => ({
+  ...c,
+  image: buildImg(categoryImageKeyword[c.id] ?? c.id, 1001 + i),
+}));
 
 export const categoryName = (id: string) =>
   categories.find((c) => c.id === id)?.name ?? "All Products";
@@ -109,7 +151,7 @@ const base: Product[] = [
   { id: "co2", name: "GlideErgo Wireless Mouse", glyph: "🖱️", gradient: "from-zinc-400 to-slate-600", price: 11900, oldPrice: 19000, rating: 4.5, reviews: 1120, categoryId: "computing", brand: "Glide", tags: ["rec"] },
 ];
 
-function enrich(p: Product): EnrichedProduct {
+export function enrich(p: Product): EnrichedProduct {
   const model = p.name.split(" ").slice(0, 2).join(" ");
   return {
     ...p,
@@ -133,7 +175,12 @@ function enrich(p: Product): EnrichedProduct {
   };
 }
 
-export const allProducts: EnrichedProduct[] = base.map(enrich);
+const withImages: Product[] = base.map((p, i) => ({
+  ...p,
+  image: productImageKeyword[p.id] ? buildImg(productImageKeyword[p.id], i + 1) : undefined,
+}));
+
+export const allProducts: EnrichedProduct[] = withImages.map(enrich);
 
 export const getProduct = (id: string) => allProducts.find((p) => p.id === id);
 
@@ -160,10 +207,10 @@ export function searchProducts(query: string): EnrichedProduct[] {
 }
 
 export const navLinks: { label: string; href: string }[] = [
-  { label: "ShopLyft Mall", href: "/deals" },
   { label: "Today's Deals", href: "/deals" },
   { label: "New Arrivals", href: "/category/electronics" },
   { label: "Best Sellers", href: "/category/phones" },
-  { label: "Sell on ShopLyft", href: "/account" },
+  { label: "Stores", href: "/stores" },
+  { label: "Sell on ShopLyft", href: "/sell" },
   { label: "Help Center", href: "/help" },
 ];

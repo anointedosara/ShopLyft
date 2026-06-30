@@ -1,21 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type EnrichedProduct, formatNaira, discountPct } from "@/lib/data";
 import { useStore } from "@/context/StoreProvider";
-import { StarIcon, HeartIcon, CartIcon, TruckIcon, ReturnIcon, ShieldIcon } from "./icons";
+import { StarIcon, HeartIcon, CartIcon, TruckIcon, ReturnIcon, ShieldIcon, CheckIcon } from "./icons";
 
 export default function ProductDetail({ product }: { product: EnrichedProduct }) {
   const { addToCart, toggleWishlist, isWishlisted, hydrated } = useStore();
   const router = useRouter();
   const [qty, setQty] = useState(1);
-  const [activeThumb, setActiveThumb] = useState(0);
 
   const pct = discountPct(product.price, product.oldPrice);
   const saved = hydrated && isWishlisted(product.id);
   const saving = product.oldPrice ? product.oldPrice - product.price : 0;
-  const thumbs = ["scale-100", "-rotate-12 scale-90", "rotate-12 scale-95", "scale-110"];
 
   const buyNow = () => {
     addToCart(product.id, qty);
@@ -26,28 +25,26 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
     <div className="grid lg:grid-cols-2 gap-6 lg:gap-10">
       {/* gallery */}
       <div className="lg:sticky lg:top-28 self-start">
-        <div className={`relative aspect-square rounded-3xl bg-gradient-to-br ${product.gradient} grid place-items-center overflow-hidden ring-1 ring-line`}>
-          <span className={`text-[8rem] sm:text-[11rem] drop-shadow-xl transition-transform duration-500 ${thumbs[activeThumb]}`}>
-            {product.glyph}
-          </span>
+        <div className={`relative aspect-square rounded-3xl overflow-hidden bg-gradient-to-br ${product.gradient} ring-1 ring-line`}>
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+            />
+          ) : (
+            <span className="absolute inset-0 grid place-items-center text-[8rem] sm:text-[11rem] drop-shadow-xl">
+              {product.glyph}
+            </span>
+          )}
           {pct > 0 && (
             <span className="absolute top-4 left-4 rounded-lg bg-ink text-white text-sm font-bold px-3 py-1.5">
               -{pct}% OFF
             </span>
           )}
-        </div>
-        <div className="mt-3 flex gap-3">
-          {thumbs.map((t, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveThumb(i)}
-              className={`grid place-items-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${product.gradient} ring-2 transition ${
-                activeThumb === i ? "ring-brand" : "ring-transparent hover:ring-brand-200"
-              }`}
-            >
-              <span className={`text-3xl ${t}`}>{product.glyph}</span>
-            </button>
-          ))}
         </div>
       </div>
 
@@ -80,7 +77,7 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
 
         {product.stockLeft != null && (
           <p className="mt-2 text-sm font-semibold text-brand-700">
-            🔥 Selling fast — only {product.stockLeft} left in stock
+            Selling fast — only {product.stockLeft} left in stock
           </p>
         )}
 
@@ -140,7 +137,7 @@ export default function ProductDetail({ product }: { product: EnrichedProduct })
           <ul className="space-y-2">
             {product.highlights.map((h) => (
               <li key={h} className="flex items-start gap-2 text-sm text-ink-soft">
-                <span className="mt-0.5 text-brand">✓</span> {h}
+                <CheckIcon width={16} height={16} className="mt-0.5 shrink-0 text-brand" /> {h}
               </li>
             ))}
           </ul>

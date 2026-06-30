@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { categories } from "@/lib/data";
+import Image from "next/image";
+import { type Category } from "@/lib/data";
 import { ChevronLeft, ChevronRight } from "./icons";
 
-export default function CategoryNav() {
+export default function CategoryNav({ categories }: { categories: Category[] }) {
   const ref = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -67,7 +68,13 @@ export default function CategoryNav() {
               href={`/category/${c.id}`}
               className="group flex items-center gap-2 shrink-0 rounded-full bg-cloud hover:bg-brand-50 ring-1 ring-transparent hover:ring-brand-200 px-3.5 py-2 transition"
             >
-              <span className="text-base">{c.glyph}</span>
+              {c.image ? (
+                <span className="relative inline-block w-6 h-6 rounded-full overflow-hidden ring-1 ring-line shrink-0">
+                  <Image src={c.image} alt="" fill sizes="24px" className="object-cover" />
+                </span>
+              ) : (
+                <span className="text-base">{c.glyph}</span>
+              )}
               <span className="text-sm font-medium text-ink-soft group-hover:text-brand-700 whitespace-nowrap">
                 {c.name}
               </span>

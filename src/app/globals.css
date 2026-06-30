@@ -1,29 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* Brand palette — ShopLyft (Jumia-inspired warm orange) */
-  --color-brand: #f97316;
-  --color-brand-50: #fff7ed;
-  --color-brand-100: #ffedd5;
-  --color-brand-200: #fed7aa;
-  --color-brand-300: #fdba74;
-  --color-brand-500: #f97316;
-  --color-brand-600: #ea6c0b;
-  --color-brand-700: #c2540a;
-  --color-ink: #16161d;
-  --color-ink-soft: #2b2b36;
-  --color-night: #0b0c12;
-  --color-cloud: #f4f5f7;
-  --color-mute: #6b7280;
-  --color-line: #e7e8ec;
-  --color-accent: #14b8a6;
-  --color-gold: #ffb800;
+  /* ShopLyft palette — restrained: warm stone neutrals + a single burnt-orange accent. */
+  --color-brand: #c2540a;
+  --color-brand-50: #fbf3ec;
+  --color-brand-100: #f4e2d3;
+  --color-brand-200: #e7c2a3;
+  --color-brand-300: #d59a66;
+  --color-brand-500: #c2540a;
+  --color-brand-600: #a8480a;
+  --color-brand-700: #8a3c0c;
+  --color-ink: #1c1917;
+  --color-ink-soft: #292524;
+  --color-night: #0c0a09;
+  --color-cloud: #fafaf9;
+  --color-mute: #78716c;
+  --color-line: #e7e5e4;
+  --color-accent: #c2540a;
+  --color-gold: #d59a66;
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-poppins);
 
-  --shadow-card: 0 1px 2px rgba(16, 16, 29, 0.04), 0 8px 24px rgba(16, 16, 29, 0.06);
-  --shadow-pop: 0 10px 40px rgba(249, 115, 22, 0.28);
+  --shadow-card: 0 1px 2px rgba(28, 25, 23, 0.04), 0 8px 24px rgba(28, 25, 23, 0.06);
+  --shadow-pop: 0 8px 28px rgba(194, 84, 10, 0.18);
 
   --animate-marquee: marquee 28s linear infinite;
   --animate-float: float 6s ease-in-out infinite;
@@ -41,8 +41,8 @@
 }
 
 :root {
-  --background: #f4f5f7;
-  --foreground: #16161d;
+  --background: #fafaf9;
+  --foreground: #1c1917;
 }
 
 * {
@@ -66,7 +66,7 @@ body {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
 .text-gradient {
-  background: linear-gradient(90deg, #f97316, #fb923c, #ffb800);
+  background: linear-gradient(90deg, #d59a66, #c2540a);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

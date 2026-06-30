@@ -38,7 +38,7 @@ export default function Newsletter() {
               className="flex-1 rounded-xl px-4 py-3.5 text-ink outline-none ring-2 ring-transparent focus:ring-gold"
             />
             <button className="rounded-xl bg-ink hover:bg-ink-soft px-6 py-3.5 font-semibold transition active:scale-[0.98] whitespace-nowrap">
-              {sent ? "🎉 You're in!" : "Subscribe"}
+              {sent ? "You're subscribed" : "Subscribe"}
             </button>
           </form>
         </div>

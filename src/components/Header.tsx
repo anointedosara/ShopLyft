@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { categories, navLinks } from "@/lib/data";
+import { navLinks, type Category } from "@/lib/data";
 import { useStore } from "@/context/StoreProvider";
+import { useSession } from "@/lib/auth-client";
+import NotificationBell from "./NotificationBell";
 import {
   SearchIcon, UserIcon, CartIcon, HeartIcon, MenuIcon, CloseIcon, ChevronRight,
 } from "./icons";
@@ -21,11 +24,13 @@ function Badge({ count }: { count: number }) {
   );
 }
 
-export default function Header() {
+export default function Header({ categories }: { categories: Category[] }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const router = useRouter();
   const { cartCount, wishlist, hydrated } = useStore();
+  const { data: session } = useSession();
+  const firstName = session?.user?.name?.trim().split(" ")[0];
 
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +41,14 @@ export default function Header() {
 
   return (
     <>
-      {/* Announcement marquee */}
-      <div className="bg-ink text-white text-xs sm:text-sm overflow-hidden">
-        <div className="flex w-max animate-[marquee_28s_linear_infinite] gap-12 py-2 whitespace-nowrap">
-          {Array.from({ length: 2 }).map((_, g) => (
-            <div key={g} className="flex gap-12">
-              <span>🚚 Free delivery on orders over ₦50,000</span>
-              <span>⚡ Flash Sales live now — up to 70% off</span>
-              <span>🎁 New customer? Get ₦2,000 off your first order</span>
-              <span>🔒 100% secure payments & easy returns</span>
-            </div>
-          ))}
+      {/* Announcement strip */}
+      <div className="bg-ink text-white/75 text-xs">
+        <div className="mx-auto max-w-[1280px] px-5 py-2 flex items-center justify-center gap-x-6 flex-wrap text-center">
+          <span>Free delivery on orders over ₦50,000</span>
+          <span className="hidden sm:inline text-white/25">•</span>
+          <span className="hidden sm:inline">Secure payments by Paystack</span>
+          <span className="hidden md:inline text-white/25">•</span>
+          <span className="hidden md:inline">7-day easy returns</span>
         </div>
       </div>
 
@@ -89,8 +91,9 @@ export default function Header() {
             <nav className="ml-auto flex items-center gap-1 sm:gap-2">
               <Link href="/account" className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/15 transition text-sm font-medium">
                 <UserIcon width={20} height={20} />
-                <span className="hidden lg:inline">Account</span>
+                <span className="hidden lg:inline" suppressHydrationWarning>{firstName ? `Hi, ${firstName}` : "Account"}</span>
               </Link>
+              <NotificationBell />
               <Link href="/wishlist" className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/15 transition text-sm font-medium">
                 <span className="relative">
                   <HeartIcon width={20} height={20} />
@@ -181,7 +184,14 @@ export default function Header() {
                     className="flex items-center justify-between px-4 py-3 hover:bg-cloud transition"
                   >
                     <span className="flex items-center gap-3 text-sm font-medium text-ink">
-                      <span className="text-lg">{c.glyph}</span> {c.name}
+                      {c.image ? (
+                        <span className="relative inline-block w-7 h-7 rounded-full overflow-hidden ring-1 ring-line shrink-0">
+                          <Image src={c.image} alt="" fill sizes="28px" className="object-cover" />
+                        </span>
+                      ) : (
+                        <span className="text-lg">{c.glyph}</span>
+                      )}{" "}
+                      {c.name}
                     </span>
                     <ChevronRight width={16} height={16} className="text-mute" />
                   </Link>

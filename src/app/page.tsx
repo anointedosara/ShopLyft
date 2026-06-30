@@ -6,9 +6,18 @@ import CategoryGrid from "@/components/CategoryGrid";
 import PromoBanners from "@/components/PromoBanners";
 import ProductRail from "@/components/ProductRail";
 import Newsletter from "@/components/Newsletter";
-import { topDeals, recommended } from "@/lib/data";
+import { getFlashSales, getTopDeals, getRecommended } from "@/lib/catalog";
 
-export default function Home() {
+// Catalog is DB-backed and editable, so render fresh on each request.
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const [flashSales, topDeals, recommended] = await Promise.all([
+    getFlashSales(),
+    getTopDeals(),
+    getRecommended(),
+  ]);
+
   return (
     <>
       {/* Hero with Jumia-style category sidebar */}
@@ -20,7 +29,7 @@ export default function Home() {
       </section>
 
       <ServiceBar />
-      <FlashSales />
+      <FlashSales products={flashSales} />
       <CategoryGrid />
       <ProductRail
         title="Top deals for you"

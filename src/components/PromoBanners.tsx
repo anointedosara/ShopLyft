@@ -2,27 +2,9 @@ import Reveal from "./Reveal";
 import { ChevronRight } from "./icons";
 
 const banners = [
-  {
-    title: "Tech Week",
-    text: "Premium gadgets up to 50% off",
-    cta: "Shop tech",
-    glyph: "💻",
-    cls: "from-indigo-600 to-violet-700",
-  },
-  {
-    title: "Fashion Fest",
-    text: "New season styles just dropped",
-    cta: "Shop fashion",
-    glyph: "👜",
-    cls: "from-rose-500 to-pink-600",
-  },
-  {
-    title: "Home Refresh",
-    text: "Cozy up your space for less",
-    cta: "Shop home",
-    glyph: "🛋️",
-    cls: "from-amber-500 to-orange-600",
-  },
+  { title: "Tech Week", text: "Premium gadgets, up to 50% off", cta: "Shop tech", href: "/category/electronics", cls: "from-stone-800 to-stone-950" },
+  { title: "Fashion Fest", text: "New-season styles just dropped", cta: "Shop fashion", href: "/category/fashion", cls: "from-stone-800 to-stone-950" },
+  { title: "Home Refresh", text: "Upgrade your space for less", cta: "Shop home", href: "/category/home", cls: "from-stone-800 to-stone-950" },
 ];
 
 export default function PromoBanners() {
@@ -32,18 +14,16 @@ export default function PromoBanners() {
         {banners.map((b) => (
           <a
             key={b.title}
-            href="#"
-            className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${b.cls} text-white p-6 min-h-[160px] flex flex-col justify-between`}
+            href={b.href}
+            className={`group relative overflow-hidden rounded-3xl bg-gradient-to-br ${b.cls} text-white p-6 min-h-[160px] flex flex-col justify-between ring-1 ring-white/10`}
           >
-            <span className="absolute -right-4 -bottom-4 text-8xl opacity-25 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-              {b.glyph}
-            </span>
+            <span className="pointer-events-none absolute -right-10 -top-10 w-40 h-40 rounded-full bg-white/[0.06] group-hover:scale-110 transition-transform duration-500" />
             <div className="relative">
-              <p className="text-xs font-semibold uppercase tracking-widest text-white/70">Limited time</p>
-              <h3 className="font-display font-extrabold text-2xl mt-1">{b.title}</h3>
-              <p className="text-white/85 text-sm mt-1 max-w-[14rem]">{b.text}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Limited time</p>
+              <h3 className="font-display font-bold text-2xl mt-1.5">{b.title}</h3>
+              <p className="text-white/75 text-sm mt-1 max-w-[14rem]">{b.text}</p>
             </div>
-            <span className="relative inline-flex items-center gap-1 font-semibold text-sm group-hover:gap-2 transition-all">
+            <span className="relative inline-flex items-center gap-1.5 font-semibold text-sm text-white/90 group-hover:gap-2.5 transition-all">
               {b.cta} <ChevronRight width={16} height={16} />
             </span>
           </a>

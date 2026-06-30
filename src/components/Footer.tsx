@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronUp, XSocialIcon, InstagramIcon, FacebookIcon, YouTubeIcon } from "./icons";
 
 // known footer links that map to real routes; others stay as in-page anchors
 const linkHrefs: Record<string, string> = {
@@ -30,15 +31,20 @@ const columns = [
   },
 ];
 
-const socials = ["𝕏", "f", "in", "▶", "◎"];
-const pays = ["VISA", "Master", "Verve", "USSD", "Pay on Delivery"];
+const socials = [
+  { Icon: XSocialIcon, label: "X" },
+  { Icon: InstagramIcon, label: "Instagram" },
+  { Icon: FacebookIcon, label: "Facebook" },
+  { Icon: YouTubeIcon, label: "YouTube" },
+];
+const pays = ["VISA", "Mastercard", "Verve", "Bank Transfer", "USSD"];
 
 export default function Footer() {
   return (
     <footer className="mt-8 bg-ink text-white/70">
       {/* back to top */}
-      <a href="#" className="block bg-ink-soft text-center py-3 text-sm font-medium text-white hover:text-gold transition">
-        ↑ Back to top
+      <a href="#" className="flex items-center justify-center gap-1.5 bg-ink-soft py-3 text-sm font-medium text-white hover:text-gold transition">
+        <ChevronUp width={16} height={16} /> Back to top
       </a>
 
       <div className="mx-auto max-w-[1280px] px-5 py-12 grid grid-cols-2 lg:grid-cols-5 gap-8">
@@ -54,9 +60,9 @@ export default function Footer() {
             delivered to your door — lifted higher, every day.
           </p>
           <div className="flex gap-2 mt-5">
-            {socials.map((s, i) => (
-              <a key={i} href="#" className="grid place-items-center w-9 h-9 rounded-full bg-white/10 hover:bg-brand text-white transition" aria-label="social link">
-                {s}
+            {socials.map(({ Icon, label }) => (
+              <a key={label} href="#" aria-label={label} className="grid place-items-center w-9 h-9 rounded-full bg-white/10 hover:bg-brand text-white transition">
+                <Icon width={16} height={16} />
               </a>
             ))}
           </div>
@@ -82,7 +88,7 @@ export default function Footer() {
 
       <div className="border-t border-white/10">
         <div className="mx-auto max-w-[1280px] px-5 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-white/50">© 2026 ShopLyft Inc. All rights reserved. Built as a design demo.</p>
+          <p className="text-xs text-white/50">© 2026 ShopLyft Inc. All rights reserved.</p>
           <div className="flex flex-wrap items-center gap-2">
             {pays.map((p) => (
               <span key={p} className="rounded-md bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/80">

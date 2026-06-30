@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/context/StoreProvider";
+import { getCategories } from "@/lib/catalog";
 import Header from "@/components/Header";
 import CategoryNav from "@/components/CategoryNav";
 import Footer from "@/components/Footer";
@@ -27,17 +28,19 @@ export const metadata: Metadata = {
   keywords: ["ShopLyft", "online shopping", "ecommerce", "flash sales", "electronics", "fashion"],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getCategories();
+
   return (
     <html lang="en" className={`${inter.variable} ${poppins.variable} h-full`}>
       <body className="min-h-full flex flex-col bg-cloud text-ink">
         <StoreProvider>
-          <Header />
-          <CategoryNav />
+          <Header categories={categories} />
+          <CategoryNav categories={categories} />
           <main className="flex-1">{children}</main>
           <Footer />
           <Toaster />

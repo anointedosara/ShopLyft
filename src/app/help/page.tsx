@@ -89,7 +89,9 @@ export default function HelpCenterPage() {
 
       {/* contact */}
       <section className="mt-10 rounded-3xl bg-cloud p-8 text-center">
-        <p className="text-4xl mb-2">💬</p>
+        <span className="mx-auto grid place-items-center w-14 h-14 rounded-full bg-white ring-1 ring-line text-brand mb-2">
+          <SupportIcon width={24} height={24} />
+        </span>
         <h2 className="font-display font-bold text-xl text-ink">Still need help?</h2>
         <p className="text-mute mt-1">Our support team is available 24/7 to assist you.</p>
         <div className="mt-5 flex flex-wrap justify-center gap-3">

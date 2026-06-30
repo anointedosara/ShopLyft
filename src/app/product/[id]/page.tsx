@@ -1,25 +1,22 @@
 import { notFound } from "next/navigation";
-import { allProducts, getProduct, relatedProducts, categoryName } from "@/lib/data";
+import { categoryName } from "@/lib/data";
+import { getProduct, getRelatedProducts } from "@/lib/catalog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ProductDetail from "@/components/ProductDetail";
 import ProductRail from "@/components/ProductRail";
 
-export function generateStaticParams() {
-  return allProducts.map((p) => ({ id: p.id }));
-}
-
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const p = getProduct(id);
+  const p = await getProduct(id);
   return { title: p ? `${p.name} — ShopLyft` : "Product — ShopLyft" };
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = getProduct(id);
+  const product = await getProduct(id);
   if (!product) notFound();
 
-  const related = relatedProducts(product);
+  const related = await getRelatedProducts(product);
 
   return (
     <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">

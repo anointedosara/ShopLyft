@@ -1,7 +1,8 @@
-import { searchProducts } from "@/lib/data";
+import { searchCatalog } from "@/lib/catalog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ProductBrowser from "@/components/ProductBrowser";
 import ProductGrid from "@/components/ProductGrid";
+import { SearchEmptyIcon } from "@/components/icons";
 
 export const metadata = { title: "Search — ShopLyft" };
 
@@ -12,7 +13,7 @@ export default async function SearchPage({
 }) {
   const { q = "" } = await searchParams;
   const query = q.trim();
-  const results = query ? searchProducts(query) : [];
+  const results = query ? await searchCatalog(query) : [];
 
   return (
     <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">
@@ -31,7 +32,9 @@ export default async function SearchPage({
 
       {!query ? (
         <div className="rounded-2xl bg-white ring-1 ring-line p-12 text-center">
-          <p className="text-5xl mb-3">🔎</p>
+          <span className="mx-auto grid place-items-center w-14 h-14 rounded-full bg-cloud text-mute mb-3">
+            <SearchEmptyIcon width={24} height={24} />
+          </span>
           <p className="font-display font-bold text-lg text-ink">What are you looking for?</p>
           <p className="text-mute text-sm mt-1">Use the search bar above to find products, brands and categories.</p>
         </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { flashSales } from "@/lib/data";
+import type { Product } from "@/lib/data";
 import ProductCard from "./ProductCard";
 import { BoltIcon, ChevronLeft, ChevronRight } from "./icons";
 
@@ -10,7 +10,7 @@ function pad(n: number) {
   return n.toString().padStart(2, "0");
 }
 
-export default function FlashSales() {
+export default function FlashSales({ products }: { products: Product[] }) {
   const rail = useRef<HTMLDivElement>(null);
   // Countdown — fixed 8h window from first client render (avoids SSR mismatch)
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -71,7 +71,7 @@ export default function FlashSales() {
 
         {/* rail */}
         <div ref={rail} className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar snap-x scroll-pl-1 pb-1">
-          {flashSales.map((p) => (
+          {products.map((p) => (
             <div key={p.id} className="snap-start shrink-0 w-[44%] sm:w-[230px]">
               <ProductCard product={p} flash />
             </div>

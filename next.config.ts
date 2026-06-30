@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    // Real product/category photos are served from loremflickr (pinned per item).
+    remotePatterns: [{ protocol: "https", hostname: "loremflickr.com" }],
+  },
 };
 
 export default nextConfig;

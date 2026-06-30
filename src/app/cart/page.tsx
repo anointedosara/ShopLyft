@@ -20,7 +20,9 @@ export default function CartPage() {
       <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">
         <Breadcrumbs items={[{ label: "Cart" }]} />
         <div className="mt-6 rounded-3xl bg-white ring-1 ring-line p-12 text-center">
-          <p className="text-6xl mb-4">🛒</p>
+          <span className="mx-auto grid place-items-center w-16 h-16 rounded-full bg-cloud text-mute mb-4">
+            <CartIcon width={28} height={28} />
+          </span>
           <h1 className="font-display font-extrabold text-2xl text-ink">Your cart is empty</h1>
           <p className="text-mute mt-2">Browse our deals and find something you love.</p>
           <Link href="/deals" className="inline-flex mt-6 rounded-xl bg-brand hover:bg-brand-600 text-white font-semibold px-6 py-3 transition">
@@ -114,7 +116,7 @@ export default function CartPage() {
             >
               <CartIcon width={18} height={18} /> Proceed to checkout
             </Link>
-            <p className="mt-3 text-center text-xs text-mute">🔒 Secure checkout · easy 7-day returns</p>
+            <p className="mt-3 text-center text-xs text-mute">Secure checkout · easy 7-day returns</p>
           </div>
         </aside>
       </div>

@@ -1,11 +1,15 @@
-import { dealsAndFlash } from "@/lib/data";
+import { getDealsAndFlash } from "@/lib/catalog";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import ProductBrowser from "@/components/ProductBrowser";
 import { BoltIcon } from "@/components/icons";
 
 export const metadata = { title: "Today's Deals — ShopLyft" };
 
-export default function DealsPage() {
+// Catalog is DB-backed and editable, so render fresh on each request.
+export const dynamic = "force-dynamic";
+
+export default async function DealsPage() {
+  const dealsAndFlash = await getDealsAndFlash();
   return (
     <div className="mx-auto max-w-[1280px] px-3 sm:px-5 py-5 sm:py-8">
       <Breadcrumbs items={[{ label: "Today's Deals" }]} />

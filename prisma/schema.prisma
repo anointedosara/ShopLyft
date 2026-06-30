@@ -1,0 +1,474 @@
+// ShopLyft data model — V1 (single-seller).
+// Sellers/admin are intentionally absent; they bolt on later as additive tables
+// (a Seller model + Product.sellerId) without changing anything below.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Mirrors the Category type in src/lib/data.ts
+model Category {
+  id        String    @id
+  name      String
+  glyph     String
+  gradient  String
+  image     String?
+  sortOrder Int       @default(0) // curated display order
+  products  Product[]
+}
+
+// Mirrors the core Product fields in src/lib/data.ts.
+// (description/highlights/specs are derived at render time, not stored.)
+model Product {
+  id         String      @id
+  name       String
+  glyph      String
+  gradient   String
+  price      Int // Naira, whole units
+  oldPrice   Int?
+  rating     Float
+  reviews    Int
+  brand      String
+  badge      String?
+  stockLeft  Int?
+  stockTotal Int?
+  tags       String[] // "flash" | "deal" | "rec"
+  image      String?
+  sortOrder  Int         @default(0) // curated display order within rails/grids
+  categoryId String
+  category   Category    @relation(fields: [categoryId], references: [id])
+  storeId    String
+  store      Store       @relation(fields: [storeId], references: [id])
+  orderItems OrderItem[]
+  sellerReviews SellerReview[]
+  createdAt  DateTime    @default(now())
+}
+
+// Owned by Better Auth (email + password). The extra fields/relations are ours.
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          UserRole  @default(BUYER)
+  phone         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  orders        Order[]
+  store         Store?
+  // Seller verification (KYC) — additive, see schema tail.
+  sellerProfile         SellerProfile?
+  verificationsReviewed SellerVerification[]   @relation("VerificationReviewer")
+  verificationActions   VerificationHistory[]
+  adminNotes            AdminNote[]
+  reviews               SellerReview[]         @relation("ReviewBuyer")
+  reviewReplies         ReviewReply[]
+  notifications         Notification[]
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+// A seller's storefront. Platform-owned stores (e.g. "ShopLyft Official") have a
+// null owner. `approved` gates a store's products from appearing until an admin
+// signs off (admin-approval policy).
+model Store {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  description String?
+  logo        String?
+  banner      String?
+  approved    Boolean     @default(false)
+  ownerId     String?     @unique
+  owner       User?       @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  products    Product[]
+  orderItems  OrderItem[]
+  // Seller verification (KYC) — additive. `approved` stays in sync with
+  // verification.status === APPROVED so the public catalog filter is unchanged.
+  sellerProfile SellerProfile?
+  verification  SellerVerification?
+  reviews       SellerReview[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+// Mirrors the Order type in StoreProvider.tsx, but server-owned.
+// userId is optional so guest checkout keeps working until auth lands (Milestone 2).
+model Order {
+  id          String      @id @default(cuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  status      OrderStatus @default(PENDING)
+  total       Int
+  name        String
+  address     String
+  paystackRef String?     @unique
+  items       OrderItem[]
+  reviews     SellerReview[]
+  createdAt   DateTime    @default(now())
+}
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  storeId   String? // which store sold this item (snapshot for per-seller fulfillment)
+  store     Store?  @relation(fields: [storeId], references: [id])
+  name      String // snapshot of name at purchase time
+  qty       Int
+  price     Int // snapshot of unit price at purchase time
+  // Per-seller fulfillment: a seller marks their items in an order shipped. An
+  // order may span multiple stores, so fulfillment is tracked per line, not per
+  // order. The order flips to FULFILLED only once every line is fulfilled.
+  fulfilledAt DateTime?
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Seller Verification (KYC) — additive tables. Nothing above changed except new
+// back-relations + Store.banner. Every seller must reach SellerStatus.APPROVED
+// before listing products; Store.approved is kept in sync with that status.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum SellerStatus {
+  DRAFT // application started, not yet submitted
+  PENDING_REVIEW // submitted, awaiting an admin
+  UNDER_REVIEW // an admin has opened it
+  APPROVED // may list and sell
+  REJECTED // declined; may resubmit
+  SUSPENDED // previously approved, now halted
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
+enum BusinessType {
+  SOLE_PROPRIETOR
+  PARTNERSHIP
+  LIMITED_LIABILITY
+  ENTERPRISE
+  NGO
+  OTHER
+}
+
+// Accepted government IDs — any one satisfies identity verification.
+enum IdDocumentType {
+  NATIONAL_ID
+  DRIVERS_LICENSE
+  PASSPORT
+  VOTERS_CARD
+}
+
+// Document slots an application can hold.
+enum VerificationDocumentType {
+  NATIONAL_ID
+  DRIVERS_LICENSE
+  PASSPORT
+  VOTERS_CARD
+  SELFIE
+  UTILITY_BILL
+}
+
+enum VerificationAction {
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+  INFO_REQUESTED
+  RESUBMITTED
+  NOTE_ADDED
+}
+
+enum NotificationType {
+  VERIFICATION_SUBMITTED
+  VERIFICATION_APPROVED
+  VERIFICATION_REJECTED
+  INFO_REQUESTED
+  NEW_REVIEW
+  REVIEW_REPLY
+  GENERAL
+}
+
+enum EmailType {
+  VERIFICATION_SUBMITTED
+  VERIFICATION_APPROVED
+  VERIFICATION_REJECTED
+  INFO_REQUESTED
+  NEW_REVIEW
+  REVIEW_REPLY
+  GENERAL
+}
+
+enum EmailStatus {
+  SENT // delivered to Resend
+  FAILED // provider rejected/threw
+  LOGGED // no provider configured — recorded only (dev/fallback)
+}
+
+// Private, verifiable seller identity. 1:1 with Store and User. The public
+// storefront stays on Store; sensitive numbers (government ID, bank account)
+// are stored encrypted (…Enc) with a separate sha256 (…Hash) used only for
+// duplicate detection and indexing — never the plaintext.
+model SellerProfile {
+  id      String @id @default(cuid())
+  storeId String @unique
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Personal information
+  fullLegalName      String?
+  dateOfBirth        DateTime?
+  gender             Gender?
+  phone              String?
+  email              String?
+  residentialAddress String?
+  city               String?
+  state              String?
+  country            String?
+
+  // Identity verification
+  idType       IdDocumentType?
+  idNumberEnc  String? // AES-256-GCM ciphertext
+  idNumberHash String? // sha256(normalized) — dedup only
+  idExpiry     DateTime?
+
+  // Business information
+  businessType        BusinessType?
+  businessDescription String?
+  productCategories   String[]
+  cacNumber           String?
+  tin                 String?
+  yearsInBusiness     Int?
+
+  // Banking (for payouts)
+  bankName          String?
+  accountName       String?
+  accountNumberEnc  String? // AES-256-GCM ciphertext
+  accountNumberHash String? // sha256(normalized) — dedup only
+
+  // Additional verification
+  businessAddress String?
+  website         String?
+  socialLinks     Json? // { twitter?, instagram?, facebook?, … }
+
+  // Fraud-detection hashes (normalized, sha256)
+  phoneHash String?
+  emailHash String?
+
+  verification SellerVerification?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([idNumberHash])
+  @@index([accountNumberHash])
+  @@index([phoneHash])
+  @@index([emailHash])
+}
+
+// The review workflow/state for a seller's application. 1:1 with SellerProfile.
+model SellerVerification {
+  id        String        @id @default(cuid())
+  profileId String        @unique
+  profile   SellerProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  storeId   String        @unique
+  store     Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  status         SellerStatus @default(DRAFT)
+  completedSteps String[] // e.g. ["personal","business","identity","bank"]
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  reviewedBy     User?        @relation("VerificationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  rejectionReason String?
+  requestedInfo   String? // what the admin asked the seller to add
+
+  documents VerificationDocument[]
+  history   VerificationHistory[]
+  notes     AdminNote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// An uploaded file (ID, selfie, utility bill). Only the secure URL + Cloudinary
+// public id are stored; files live in a private Cloudinary folder and are served
+// to admins via short-lived signed URLs.
+model VerificationDocument {
+  id             String             @id @default(cuid())
+  verificationId String
+  verification   SellerVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  type           VerificationDocumentType
+  url            String
+  publicId       String?
+  idNumber       String?
+  expiryDate     DateTime?
+  uploadedAt     DateTime           @default(now())
+
+  @@index([verificationId])
+}
+
+// Internal-only note left by an admin on an application.
+model AdminNote {
+  id             String             @id @default(cuid())
+  verificationId String
+  verification   SellerVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  adminId        String
+  admin          User               @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime           @default(now())
+
+  @@index([verificationId])
+}
+
+// Append-only audit trail of every status change / admin action.
+model VerificationHistory {
+  id             String             @id @default(cuid())
+  verificationId String
+  verification   SellerVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  adminId        String? // null for seller/system actions (submit, resubmit)
+  admin          User?              @relation(fields: [adminId], references: [id], onDelete: SetNull)
+  action         VerificationAction
+  reason         String?
+  previousStatus SellerStatus?
+  newStatus      SellerStatus?
+  ipAddress      String?
+  createdAt      DateTime           @default(now())
+
+  @@index([verificationId])
+}
+
+// A buyer's review of a product, tied to the order that proves the purchase.
+model SellerReview {
+  id        String  @id @default(cuid())
+  storeId   String
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  buyerId   String
+  buyer     User    @relation("ReviewBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  rating           Int // 1–5
+  title            String
+  comment          String
+  photos           String[]
+  verifiedPurchase Boolean      @default(true)
+  helpfulCount     Int          @default(0)
+  reply            ReviewReply?
+
+  createdAt DateTime @default(now())
+
+  // One review per purchased product per order.
+  @@unique([buyerId, productId, orderId])
+  @@index([storeId])
+  @@index([productId])
+}
+
+// A seller's single public reply to a review.
+model ReviewReply {
+  id        String       @id @default(cuid())
+  reviewId  String       @unique
+  review    SellerReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  sellerId  String
+  seller    User         @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// In-app notification for a user (seller or admin).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  href      String?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+}
+
+// Record of every transactional email (or fallback log when no provider is set).
+model EmailLog {
+  id            String      @id @default(cuid())
+  to            String
+  type          EmailType
+  subject       String
+  status        EmailStatus
+  providerId    String?
+  error         String?
+  relatedUserId String?
+  createdAt     DateTime    @default(now())
+
+  @@index([relatedUserId])
+}

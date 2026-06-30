@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { categories } from "@/lib/data";
+import Image from "next/image";
+import { getCategories } from "@/lib/catalog";
 import Reveal from "./Reveal";
 import { ChevronRight } from "./icons";
 
-export default function CategoryGrid() {
+export default async function CategoryGrid() {
+  const categories = await getCategories();
   return (
     <section id="categories" className="mx-auto max-w-[1280px] px-3 sm:px-5 py-8 sm:py-12">
       <div className="flex items-end justify-between mb-5">
@@ -24,9 +26,13 @@ export default function CategoryGrid() {
             className="group flex flex-col items-center gap-3 rounded-2xl bg-white ring-1 ring-line p-4 hover:ring-brand-200 hover:-translate-y-1 hover:shadow-[var(--shadow-card)] transition-all"
           >
             <span
-              className={`grid place-items-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${c.gradient} text-2xl sm:text-3xl shadow-sm group-hover:scale-110 transition-transform`}
+              className={`relative grid place-items-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-gradient-to-br ${c.gradient} text-2xl sm:text-3xl shadow-sm group-hover:scale-110 transition-transform`}
             >
-              {c.glyph}
+              {c.image ? (
+                <Image src={c.image} alt={c.name} fill sizes="64px" className="object-cover" />
+              ) : (
+                c.glyph
+              )}
             </span>
             <span className="text-xs sm:text-sm font-medium text-center text-ink-soft leading-tight">
               {c.name}
