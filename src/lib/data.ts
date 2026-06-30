@@ -35,8 +35,10 @@ export type EnrichedProduct = Product & {
   specs: Spec[];
 };
 
+// No space between ₦ and the amount: a space is a line-break opportunity, so
+// "₦ 489,000" can wrap to "₦" / "489,000" on narrow cards. "₦489,000" stays whole.
 export const formatNaira = (value: number) =>
-  "₦ " + value.toLocaleString("en-NG", { maximumFractionDigits: 0 });
+  "₦" + value.toLocaleString("en-NG", { maximumFractionDigits: 0 });
 
 export const discountPct = (price: number, oldPrice?: number) =>
   oldPrice && oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : 0;

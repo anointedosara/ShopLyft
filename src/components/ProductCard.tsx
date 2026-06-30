@@ -68,10 +68,10 @@ export default function ProductCard({ product, flash = false }: { product: Produ
           </h3>
         </Link>
 
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="font-display font-bold text-base text-ink">{formatNaira(product.price)}</span>
+        <div className="mt-2 flex items-baseline flex-wrap gap-x-2">
+          <span className="font-display font-bold text-base text-ink whitespace-nowrap">{formatNaira(product.price)}</span>
           {product.oldPrice && (
-            <span className="text-xs text-mute line-through">{formatNaira(product.oldPrice)}</span>
+            <span className="text-xs text-mute line-through whitespace-nowrap">{formatNaira(product.oldPrice)}</span>
           )}
         </div>
 
