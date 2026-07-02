@@ -4,6 +4,9 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/db";
 import { notify } from "@/lib/notifications";
+import { sendEmail } from "@/lib/email";
+import { verificationEmail, passwordResetEmail } from "@/lib/email-templates";
+import { logger } from "@/lib/logger";
 
 // Origins Better Auth will accept requests from. Without this, requests whose
 // Origin header doesn't exactly match BETTER_AUTH_URL are rejected with
@@ -31,6 +34,29 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    // Require a verified email before sign-in. Defaults OFF so existing accounts
+    // (created before verification existed) aren't locked out; flip
+    // AUTH_REQUIRE_EMAIL_VERIFICATION=true once the back-catalogue is verified.
+    requireEmailVerification: process.env.AUTH_REQUIRE_EMAIL_VERIFICATION === "true",
+    resetPasswordTokenExpiresIn: 60 * 60, // 1 hour
+    // Sign every session out of an account whose password was just reset — closes
+    // the window where a leaked-then-reset password leaves old sessions live.
+    revokeSessionsOnPasswordReset: true,
+    // Better Auth calls this with a ready-made, tokenised reset URL.
+    sendResetPassword: async ({ user, url }) => {
+      const { subject, html } = passwordResetEmail(user.name, url);
+      const res = await sendEmail({ to: user.email, type: "GENERAL", subject, html, relatedUserId: user.id });
+      if (!res.ok) logger.error("auth.sendResetPassword: email failed", { userId: user.id, error: res.error });
+    },
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
+    sendVerificationEmail: async ({ user, url }) => {
+      const { subject, html } = verificationEmail(user.name, url);
+      const res = await sendEmail({ to: user.email, type: "GENERAL", subject, html, relatedUserId: user.id });
+      if (!res.ok) logger.error("auth.sendVerificationEmail: email failed", { userId: user.id, error: res.error });
+    },
   },
   databaseHooks: {
     user: {

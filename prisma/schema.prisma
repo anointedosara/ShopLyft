@@ -87,6 +87,13 @@ model User {
   reviews               SellerReview[]         @relation("ReviewBuyer")
   reviewReplies         ReviewReply[]
   notifications         Notification[]
+  // Seller Center + commerce (additive)
+  couponRedemptions     CouponRedemption[]
+  ticketsOpened         SupportTicket[]        @relation("TicketOpener")
+  supportMessages       SupportMessage[]
+  conversations         Conversation[]
+  messages              Message[]
+  returnRequests        ReturnRequest[]        @relation("ReturnBuyer")
 }
 
 enum UserRole {
@@ -115,6 +122,16 @@ model Store {
   sellerProfile SellerProfile?
   verification  SellerVerification?
   reviews       SellerReview[]
+  // Seller Center (additive)
+  coupons        Coupon[]
+  wallet         Wallet?
+  withdrawals    Withdrawal[]
+  settings       StoreSettings?
+  shippingZones  ShippingZone[]
+  taxRates       TaxRate[]
+  supportTickets SupportTicket[]
+  conversations  Conversation[]
+  returnRequests ReturnRequest[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
@@ -170,6 +187,8 @@ model Order {
   paystackRef String?     @unique
   items       OrderItem[]
   reviews     SellerReview[]
+  walletTransactions WalletTransaction[]
+  returnRequests     ReturnRequest[]
   createdAt   DateTime    @default(now())
 }
 
@@ -487,4 +506,327 @@ model EmailLog {
   createdAt     DateTime    @default(now())
 
   @@index([relatedUserId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Seller Center (Prompt 2) — additive tables. Money is whole Naira (Int), matching
+// Product.price/Order.total. These also back the Admin, Logistics and CX modules
+// (returns, wallet/payouts, messaging) so the platform migrates once, not per-prompt.
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum CouponType {
+  PERCENT // `value` is 1–100
+  FIXED // `value` is whole Naira off
+}
+
+// A seller-scoped discount code. Redemptions are tracked so maxUses / perUserLimit
+// can be enforced server-side (never trust the client).
+model Coupon {
+  id           String             @id @default(cuid())
+  storeId      String
+  store        Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  code         String
+  type         CouponType         @default(PERCENT)
+  value        Int
+  minSpend     Int? // minimum order subtotal to qualify
+  maxUses      Int? // null = unlimited total redemptions
+  perUserLimit Int? // null = unlimited per user
+  usedCount    Int                @default(0)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  active       Boolean            @default(true)
+  redemptions  CouponRedemption[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@unique([storeId, code])
+  @@index([storeId])
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId   String?
+  amount    Int // discount actually applied
+  createdAt DateTime @default(now())
+
+  @@index([couponId])
+  @@index([userId])
+}
+
+enum WalletTxnType {
+  SALE // credit from a settled order (into pending/escrow)
+  RELEASE // pending → available once buyer-protection window passes
+  WITHDRAWAL // debit to a payout
+  REFUND // debit when a return is refunded
+  ADJUSTMENT // manual admin correction
+  FEE // platform commission
+}
+
+// One wallet per store. `pending` is escrow held during the buyer-protection
+// window; `available` is withdrawable. Every change is journaled in
+// WalletTransaction with the resulting balance for auditability.
+model Wallet {
+  id           String              @id @default(cuid())
+  storeId      String              @unique
+  store        Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  available    Int                 @default(0)
+  pending      Int                 @default(0)
+  currency     String              @default("NGN")
+  transactions WalletTransaction[]
+  withdrawals  Withdrawal[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model WalletTransaction {
+  id           String        @id @default(cuid())
+  walletId     String
+  wallet       Wallet        @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type         WalletTxnType
+  amount       Int // signed: credit > 0, debit < 0
+  balanceAfter Int // available balance after this entry
+  orderId      String?
+  order        Order?        @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  note         String?
+  createdAt    DateTime      @default(now())
+
+  @@index([walletId])
+  @@index([orderId])
+}
+
+enum WithdrawalStatus {
+  PENDING // requested, awaiting admin/payout
+  PROCESSING // payout initiated
+  PAID // completed
+  REJECTED // declined (funds returned to available)
+}
+
+model Withdrawal {
+  id            String           @id @default(cuid())
+  walletId      String
+  wallet        Wallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  storeId       String
+  store         Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  amount        Int
+  status        WithdrawalStatus @default(PENDING)
+  bankName      String?
+  accountName   String?
+  accountLast4  String? // last 4 only — full number lives encrypted on SellerProfile
+  reference     String?          @unique
+  note          String? // admin note on reject/process
+  requestedAt   DateTime         @default(now())
+  processedAt   DateTime?
+  processedById String?
+
+  @@index([storeId])
+  @@index([status])
+}
+
+// Fulfilment / returns / support defaults for a store.
+model StoreSettings {
+  id                 String   @id @default(cuid())
+  storeId            String   @unique
+  store              Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  processingDays     Int      @default(2) // days to dispatch after payment
+  returnWindowDays   Int      @default(7)
+  autoAcceptReturns  Boolean  @default(false)
+  supportEmail       String?
+  supportPhone       String?
+  payoutBankName     String?
+  payoutAccountName  String?
+  payoutAccountLast4 String?
+  vacationMode       Boolean  @default(false) // hide store from catalog temporarily
+  updatedAt          DateTime @updatedAt
+}
+
+enum ShippingMethod {
+  STANDARD
+  EXPRESS
+  PICKUP
+}
+
+model ShippingZone {
+  id        String         @id @default(cuid())
+  storeId   String
+  store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String
+  regions   String[] // Nigerian states covered by this zone
+  rates     ShippingRate[]
+  createdAt DateTime       @default(now())
+
+  @@index([storeId])
+}
+
+model ShippingRate {
+  id       String         @id @default(cuid())
+  zoneId   String
+  zone     ShippingZone   @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  method   ShippingMethod @default(STANDARD)
+  price    Int
+  freeOver Int? // free shipping when subtotal ≥ this
+  minDays  Int            @default(2)
+  maxDays  Int            @default(5)
+
+  @@index([zoneId])
+}
+
+model TaxRate {
+  id        String  @id @default(cuid())
+  storeId   String
+  store     Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  name      String // e.g. "VAT"
+  region    String? // null = applies to all regions
+  percent   Float // e.g. 7.5
+  inclusive Boolean @default(false) // price already includes tax?
+  active    Boolean @default(true)
+
+  @@index([storeId])
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING // awaiting the opener's reply
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketCategory {
+  ORDER
+  PAYMENT
+  ACCOUNT
+  PRODUCT
+  PAYOUT
+  OTHER
+}
+
+// A support ticket opened by any user. `storeId` is set when a seller raises it
+// about their store (so seller + admin support share one model).
+model SupportTicket {
+  id        String           @id @default(cuid())
+  openerId  String
+  opener    User             @relation("TicketOpener", fields: [openerId], references: [id], onDelete: Cascade)
+  storeId   String?
+  store     Store?           @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  subject   String
+  category  TicketCategory   @default(OTHER)
+  priority  TicketPriority   @default(NORMAL)
+  status    TicketStatus     @default(OPEN)
+  messages  SupportMessage[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([openerId])
+  @@index([storeId])
+  @@index([status])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  body      String
+  isStaff   Boolean       @default(false) // authored by an admin/support agent
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId])
+}
+
+// Buyer ↔ seller messaging (the "Customer Messages" of Seller Center and the
+// live-chat/seller-replies of the CX prompt). Scoped to a store + buyer, optionally
+// pinned to an order.
+model Conversation {
+  id            String    @id @default(cuid())
+  storeId       String
+  store         Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  buyerId       String
+  buyer         User      @relation(fields: [buyerId], references: [id], onDelete: Cascade)
+  orderId       String?
+  subject       String?
+  lastMessageAt DateTime  @default(now())
+  messages      Message[]
+  createdAt     DateTime  @default(now())
+
+  @@index([storeId])
+  @@index([buyerId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  body           String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId])
+}
+
+enum ReturnReason {
+  DAMAGED
+  WRONG_ITEM
+  NOT_AS_DESCRIBED
+  MISSING_PARTS
+  NO_LONGER_NEEDED
+  OTHER
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  IN_TRANSIT // buyer shipped it back
+  RECEIVED // seller/warehouse received it
+  REFUNDED
+  CANCELLED
+}
+
+// A return/refund request against a paid order. Drives the Seller Center Returns
+// queue, the Admin refund-requests view and the Logistics return workflow.
+model ReturnRequest {
+  id             String       @id @default(cuid())
+  orderId        String
+  order          Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  storeId        String
+  store          Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  buyerId        String
+  buyer          User         @relation("ReturnBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  reason         ReturnReason @default(OTHER)
+  detail         String?
+  status         ReturnStatus @default(REQUESTED)
+  photos         String[]
+  refundAmount   Int?
+  resolvedById   String?
+  resolutionNote String?
+  items          ReturnItem[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([storeId])
+  @@index([buyerId])
+  @@index([status])
+}
+
+model ReturnItem {
+  id          String        @id @default(cuid())
+  returnId    String
+  request     ReturnRequest @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItemId String // references OrderItem.id (snapshot line)
+  qty         Int
+
+  @@index([returnId])
 }
