@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfileAction } from "@/app/actions/profile";
 import Avatar from "@/components/Avatar";
+import ImageUpload from "@/components/ImageUpload";
 
 type Props = {
   initial: { name: string; phone: string | null; image: string | null };
@@ -59,9 +60,14 @@ export default function ProfileForm({ initial, email }: Props) {
       </div>
 
       <div>
-        <label htmlFor="image" className="block text-sm font-semibold text-ink mb-1.5">Profile image URL <span className="text-mute font-normal">(optional)</span></label>
-        <input id="image" type="url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://…" className={inputCls} />
-        <p className="mt-1 text-xs text-mute">Direct photo upload is coming soon. For now, paste an image link.</p>
+        <span className="block text-sm font-semibold text-ink mb-1.5">Profile photo <span className="text-mute font-normal">(optional)</span></span>
+        <ImageUpload
+          value={image || null}
+          onChange={(url) => setImage(url ?? "")}
+          folder="shoplyft/avatars"
+          rounded="rounded-full"
+          hint="A square photo looks best, up to 10MB"
+        />
       </div>
 
       {msg && (

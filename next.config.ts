@@ -2,8 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Real product/category photos are served from loremflickr (pinned per item).
-    remotePatterns: [{ protocol: "https", hostname: "loremflickr.com" }],
+    // loremflickr: seeded demo photos. res.cloudinary.com: uploaded product
+    // images, store logos and avatars (direct device uploads).
+    remotePatterns: [
+      { protocol: "https", hostname: "loremflickr.com" },
+      { protocol: "https", hostname: "res.cloudinary.com" },
+    ],
   },
 };
 

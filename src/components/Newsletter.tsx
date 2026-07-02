@@ -31,7 +31,7 @@ export default function Newsletter() {
               setSent(true);
               setEmail(""); // clear the field once subscribed
             }}
-            className="flex flex-col sm:flex-row gap-3"
+            className="flex items-center gap-2 rounded-2xl bg-white p-1.5 ring-2 ring-transparent focus-within:ring-gold transition"
           >
             <input
               required
@@ -39,9 +39,9 @@ export default function Newsletter() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email address"
-              className="flex-1 rounded-xl px-4 py-3.5 text-ink outline-none ring-2 ring-transparent focus:ring-gold"
+              className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-ink outline-none placeholder:text-mute"
             />
-            <button className="rounded-xl bg-ink hover:bg-ink-soft px-6 py-3.5 font-semibold transition active:scale-[0.98] whitespace-nowrap">
+            <button className="shrink-0 rounded-xl bg-ink hover:bg-ink-soft text-white px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] whitespace-nowrap">
               {sent ? "You're subscribed" : "Subscribe"}
             </button>
           </form>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createProductAction, updateProductAction, deleteProductAction } from "@/app/actions/products";
+import ImageUpload from "@/components/ImageUpload";
 
 type Category = { id: string; name: string };
 type Initial = {
@@ -118,9 +119,12 @@ export default function ProductForm({
       </div>
 
       <div>
-        <label htmlFor="p-image" className="block text-sm font-semibold text-ink mb-1.5">Image URL</label>
-        <input id="p-image" type="url" value={image} onChange={(e) => setImage(e.target.value)} placeholder="https://…" className={inputCls} />
-        <p className="mt-1 text-xs text-mute">Direct photo upload is coming soon. For now, paste an image link.</p>
+        <span className="block text-sm font-semibold text-ink mb-1.5">Product photo</span>
+        <ImageUpload
+          value={image || null}
+          onChange={(url) => setImage(url ?? "")}
+          folder="shoplyft/products"
+        />
       </div>
 
       {error && <p className="rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</p>}

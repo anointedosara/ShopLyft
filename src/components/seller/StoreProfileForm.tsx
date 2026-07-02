@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateStoreAction } from "@/app/actions/seller";
+import ImageUpload from "@/components/ImageUpload";
 
 type Props = {
   initial: { name: string; description: string | null; logo: string | null };
@@ -46,9 +47,13 @@ export default function StoreProfileForm({ initial }: Props) {
       </div>
 
       <div>
-        <label htmlFor="s-logo" className="block text-sm font-semibold text-ink mb-1.5">Logo URL <span className="text-mute font-normal">(optional)</span></label>
-        <input id="s-logo" type="url" value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…" className={inputCls} />
-        <p className="mt-1 text-xs text-mute">Direct image upload is coming soon. For now, paste an image link.</p>
+        <span className="block text-sm font-semibold text-ink mb-1.5">Store logo <span className="text-mute font-normal">(optional)</span></span>
+        <ImageUpload
+          value={logo || null}
+          onChange={(url) => setLogo(url ?? "")}
+          folder="shoplyft/stores"
+          hint="Square image works best, up to 10MB"
+        />
       </div>
 
       {msg && (
