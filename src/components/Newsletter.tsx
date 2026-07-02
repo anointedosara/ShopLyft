@@ -45,7 +45,7 @@ export default function Newsletter() {
           <div>
             <form
               onSubmit={submit}
-              className="flex items-center gap-2 rounded-2xl bg-white p-1.5 ring-2 ring-transparent focus-within:ring-gold transition"
+              className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-2xl bg-white p-1.5 ring-2 ring-transparent focus-within:ring-gold transition"
             >
               <input
                 required
@@ -57,7 +57,7 @@ export default function Newsletter() {
               />
               <button
                 disabled={busy || sent}
-                className="shrink-0 rounded-xl bg-ink hover:bg-ink-soft text-white px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] whitespace-nowrap disabled:opacity-70"
+                className="w-full sm:w-auto shrink-0 rounded-xl bg-ink hover:bg-ink-soft text-white px-5 py-2.5 text-sm font-semibold transition active:scale-[0.98] whitespace-nowrap disabled:opacity-70"
               >
                 {sent ? "You're subscribed" : busy ? "Subscribing…" : "Subscribe"}
               </button>

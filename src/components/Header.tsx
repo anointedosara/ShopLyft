@@ -8,6 +8,7 @@ import { navLinks, type Category } from "@/lib/data";
 import { useStore } from "@/context/StoreProvider";
 import { useSession } from "@/lib/auth-client";
 import NotificationBell from "./NotificationBell";
+import Avatar from "./Avatar";
 import {
   SearchIcon, UserIcon, CartIcon, HeartIcon, MenuIcon, CloseIcon, ChevronRight,
 } from "./icons";
@@ -90,7 +91,11 @@ export default function Header({ categories }: { categories: Category[] }) {
 
             <nav className="ml-auto flex items-center gap-1 sm:gap-2">
               <Link href="/account" className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/15 transition text-sm font-medium">
-                <UserIcon width={20} height={20} />
+                {session?.user?.image ? (
+                  <Avatar name={session.user.name} image={session.user.image} size={24} className="ring-white/50" />
+                ) : (
+                  <UserIcon width={20} height={20} />
+                )}
                 <span className="hidden lg:inline" suppressHydrationWarning>{firstName ? `Hi, ${firstName}` : "Account"}</span>
               </Link>
               <NotificationBell />
