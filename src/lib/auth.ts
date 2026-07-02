@@ -5,9 +5,28 @@ import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/db";
 import { notify } from "@/lib/notifications";
 
+// Origins Better Auth will accept requests from. Without this, requests whose
+// Origin header doesn't exactly match BETTER_AUTH_URL are rejected with
+// INVALID_ORIGIN — which breaks local dev (localhost) and even prod when the
+// env URL has a trailing slash. We normalise (strip trailing slash) and always
+// allow localhost for development.
+const trustedOrigins = Array.from(
+  new Set(
+    [
+      process.env.BETTER_AUTH_URL,
+      process.env.NEXT_PUBLIC_APP_URL,
+      "http://localhost:3000",
+    ]
+      .filter((u): u is string => Boolean(u))
+      .map((u) => u.replace(/\/+$/, ""))
+  )
+);
+
 // Better Auth owns users/sessions/accounts in our own Postgres (no third-party host).
 // Email + password only for V1; social logins / email verification come later.
 export const auth = betterAuth({
+  baseURL: (process.env.BETTER_AUTH_URL || "http://localhost:3000").replace(/\/+$/, ""),
+  trustedOrigins,
   database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,

@@ -72,7 +72,7 @@ export default function FlashSales({ products }: { products: Product[] }) {
         {/* rail */}
         <div ref={rail} className="flex gap-3 sm:gap-4 overflow-x-auto no-scrollbar snap-x scroll-pl-1 pb-1">
           {products.map((p) => (
-            <div key={p.id} className="snap-start shrink-0 w-[44%] sm:w-[230px]">
+            <div key={p.id} className="snap-start shrink-0 w-[80%] sm:w-[230px]">
               <ProductCard product={p} flash />
             </div>
           ))}
