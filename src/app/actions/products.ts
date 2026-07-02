@@ -15,7 +15,9 @@ export type ProductFormValues = {
   image?: string;
 };
 
-type ActionResult = { ok: true; id?: string } | { ok: false; error: string };
+type ActionResult =
+  | { ok: true; id?: string; status?: "PENDING" | "PUBLISHED" }
+  | { ok: false; error: string };
 
 async function requireStore() {
   const user = await getSessionUser();
@@ -23,15 +25,33 @@ async function requireStore() {
   return getStoreByOwner(user.id);
 }
 
+// Prohibited-goods screen — an automated guardrail that runs for every seller,
+// trusted or not. A hit is a hard reject (not just a review hold).
+const BANNED_TERMS = [
+  "gun", "firearm", "rifle", "pistol", "ammo", "ammunition",
+  "cocaine", "heroin", "meth", "cannabis", "weed", "narcotic",
+  "counterfeit", "fake id", "human", "organ",
+];
+const MAX_PRICE = 1_000_000_000; // ₦1bn — anything above is a fat-finger
+
+function screenContent(text: string): string | null {
+  const hay = text.toLowerCase();
+  const hit = BANNED_TERMS.find((t) => new RegExp(`\\b${t}\\b`).test(hay));
+  return hit ? `"${hit}" isn't allowed on ShopLyft. Prohibited items can't be listed.` : null;
+}
+
 function validate(v: ProductFormValues): { ok: true; data: ProductInput } | { ok: false; error: string } {
   const name = v.name?.trim();
   if (!name) return { ok: false, error: "Product name is required." };
   if (!v.categoryId) return { ok: false, error: "Choose a category." };
   if (!Number.isFinite(v.price) || v.price <= 0) return { ok: false, error: "Enter a valid price." };
+  if (v.price > MAX_PRICE) return { ok: false, error: "That price looks too high — please check it." };
   if (!Number.isFinite(v.stock) || v.stock < 0) return { ok: false, error: "Enter a valid stock quantity." };
   if (v.oldPrice != null && v.oldPrice !== 0 && v.oldPrice <= v.price) {
     return { ok: false, error: "Original price should be higher than the selling price." };
   }
+  const banned = screenContent(`${name} ${v.brand ?? ""}`);
+  if (banned) return { ok: false, error: banned };
   return {
     ok: true,
     data: {
@@ -55,10 +75,18 @@ export async function createProductAction(values: ProductFormValues): Promise<Ac
   }
   const v = validate(values);
   if (!v.ok) return v;
+  // Guardrail: a listing needs a photo before it can go live.
+  if (!v.data.image) return { ok: false, error: "Add a product photo before listing." };
   try {
     const product = await createProduct(store.id, v.data);
+    // Surface the new product across the storefront right away (a PUBLISHED one,
+    // anyway — a PENDING one is held, but revalidating is harmless).
     revalidatePath("/seller");
-    return { ok: true, id: product.id };
+    revalidatePath("/products");
+    revalidatePath(`/category/${v.data.categoryId}`);
+    revalidatePath("/");
+    revalidatePath("/admin/products");
+    return { ok: true, id: product.id, status: product.status as "PENDING" | "PUBLISHED" };
   } catch {
     return { ok: false, error: "Could not create the product. Please try again." };
   }

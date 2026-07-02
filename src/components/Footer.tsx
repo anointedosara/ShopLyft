@@ -8,8 +8,10 @@ const linkHrefs: Record<string, string> = {
   "Returns & Refunds": "/returns",
   "Contact Us": "/help",
   "Today's Deals": "/deals",
-  "Flash Sales": "/deals",
-  "ShopLyft Mall": "/deals",
+  "Flash Sales": "/flash-sales",
+  "New Arrivals": "/products",
+  "Best Sellers": "/products",
+  "ShopLyft Mall": "/products",
 };
 
 const columns = [

@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { getStatusCounts, listVerifications } from "@/lib/admin";
+import { getProductStatusCounts } from "@/lib/product-moderation";
 import SellerStatusBadge from "@/components/admin/SellerStatusBadge";
-import { ChevronRight, StoreIcon } from "@/components/icons";
+import { ChevronRight, StoreIcon, PackageIcon } from "@/components/icons";
 
 export default async function AdminDashboardPage() {
-  const [counts, queue] = await Promise.all([getStatusCounts(), listVerifications("queue")]);
+  const [counts, queue, productCounts] = await Promise.all([
+    getStatusCounts(),
+    listVerifications("queue"),
+    getProductStatusCounts(),
+  ]);
   const needsReview = counts.PENDING_REVIEW + counts.UNDER_REVIEW;
 
   const cards = [
@@ -27,6 +32,27 @@ export default async function AdminDashboardPage() {
           </Link>
         ))}
       </section>
+
+      <Link
+        href="/admin/products?status=PENDING"
+        className="mt-4 flex items-center gap-4 rounded-2xl bg-white ring-1 ring-line p-5 hover:ring-brand/40 transition"
+      >
+        <span className="grid place-items-center w-11 h-11 rounded-xl bg-amber-50 text-amber-600 shrink-0">
+          <PackageIcon width={20} height={20} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-display font-bold text-ink">Products awaiting review</p>
+          <p className="text-sm text-mute">
+            {productCounts.PENDING > 0
+              ? `${productCounts.PENDING} listing${productCounts.PENDING === 1 ? "" : "s"} from new sellers to approve`
+              : "New sellers' first listings show up here"}
+          </p>
+        </div>
+        {productCounts.PENDING > 0 && (
+          <span className="rounded-full bg-amber-50 text-amber-700 text-xs font-semibold px-2.5 py-1">{productCounts.PENDING}</span>
+        )}
+        <ChevronRight width={16} height={16} className="text-mute shrink-0" />
+      </Link>
 
       <section className="mt-6 rounded-2xl bg-white ring-1 ring-line p-6">
         <div className="flex items-center justify-between mb-4">

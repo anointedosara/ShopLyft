@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/orders";
 import { getStoreByOwner } from "@/lib/stores";
-import { getProductsByStore } from "@/lib/catalog";
+import { listSellerProducts } from "@/lib/seller-products";
 import { getSellerStats } from "@/lib/seller-orders";
 import { getVerificationForUser } from "@/lib/kyc";
 import { formatNaira } from "@/lib/data";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import SellerStatusBadge from "@/components/admin/SellerStatusBadge";
+import ProductStatusBadge from "@/components/admin/ProductStatusBadge";
 import { StoreIcon, PackageIcon, ChevronRight, WalletIcon, ChartIcon, TruckIcon, AlertIcon } from "@/components/icons";
 
 export const metadata = { title: "Seller Dashboard — ShopLyft" };
@@ -20,10 +21,11 @@ export default async function SellerDashboardPage() {
   if (!store) redirect("/sell");
 
   const [products, stats, verification] = await Promise.all([
-    getProductsByStore(store.id),
+    listSellerProducts(store.id),
     getSellerStats(store.id),
     getVerificationForUser(user.id),
   ]);
+  const pendingCount = products.filter((p) => p.status === "PENDING").length;
   const status = verification?.status ?? (store.approved ? "APPROVED" : "DRAFT");
   const approved = status === "APPROVED";
   const notStarted = !verification || (verification.completedSteps.length === 0 && status === "DRAFT");
@@ -150,12 +152,25 @@ export default async function SellerDashboardPage() {
           )}
         </div>
 
+        {pendingCount > 0 && (
+          <p className="mb-4 flex gap-2 rounded-xl bg-amber-50 text-amber-800 text-sm px-4 py-3">
+            <AlertIcon width={18} height={18} className="shrink-0 mt-0.5" />
+            <span>
+              {pendingCount} of your listing{pendingCount === 1 ? " is" : "s are"} awaiting admin review. New sellers&apos; first
+              products are checked before going live — once you have a few approved, the rest publish automatically.
+            </span>
+          </p>
+        )}
+
         {products.length > 0 ? (
           <ul className="divide-y divide-line">
             {products.map((p) => (
               <li key={p.id}>
                 <Link href={`/seller/products/${p.id}/edit`} className="flex items-center justify-between gap-3 py-3 -mx-2 px-2 rounded-lg hover:bg-cloud transition">
-                  <span className="font-medium text-ink truncate">{p.name}</span>
+                  <span className="min-w-0 flex items-center gap-2.5">
+                    <span className="font-medium text-ink truncate">{p.name}</span>
+                    <ProductStatusBadge status={p.status} />
+                  </span>
                   <span className="flex items-center gap-4 text-sm text-mute shrink-0">
                     <span>{p.stockLeft != null ? `${p.stockLeft} in stock` : "—"}</span>
                     <span className="font-semibold text-ink">{formatNaira(p.price)}</span>

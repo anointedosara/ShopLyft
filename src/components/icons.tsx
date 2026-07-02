@@ -52,6 +52,14 @@ export const BoltIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base({ ...p, fill: "currentColor", stroke: "none" })}><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z" /></svg>
 );
 
+export const GridIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></svg>
+);
+
+export const TagIcon = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}><path d="M3 3h8l10 10-8 8L3 11z" /><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" /></svg>
+);
+
 export const TruckIcon = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}><path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z" /><circle cx="7" cy="18" r="1.6" /><circle cx="17.5" cy="18" r="1.6" /></svg>
 );

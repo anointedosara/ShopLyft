@@ -65,9 +65,9 @@ export const getCategory = cache(async (id: string): Promise<Category | null> =>
   return row ? toCategory(row) : null;
 });
 
-// Only products from approved stores are publicly visible. (getProductsByStore
-// is intentionally unfiltered — its callers already control visibility.)
-const PUBLIC = { store: { approved: true } } as const;
+// Publicly visible = from an approved store AND moderation-published. Held
+// (PENDING), declined (REJECTED) and pulled (TAKEN_DOWN) products never surface.
+const PUBLIC = { store: { approved: true }, status: "PUBLISHED" } as const;
 
 export const getProduct = cache(async (id: string): Promise<EnrichedProduct | null> => {
   const row = await prisma.product.findFirst({ where: { id, ...PUBLIC } });
@@ -84,8 +84,10 @@ export const getProductsByCategory = cache(async (categoryId: string): Promise<E
   return rows.map(toEnriched);
 });
 
+// Public store page: only published products (the seller dashboard uses
+// listSellerProducts, which includes held/declined items).
 export const getProductsByStore = cache(async (storeId: string): Promise<EnrichedProduct[]> => {
-  const rows = await prisma.product.findMany({ where: { storeId }, orderBy: BY_SORT });
+  const rows = await prisma.product.findMany({ where: { storeId, status: "PUBLISHED" }, orderBy: BY_SORT });
   return rows.map(toEnriched);
 });
 

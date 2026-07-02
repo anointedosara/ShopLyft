@@ -43,7 +43,7 @@ export default async function Home() {
         subtitle="Based on what's trending on ShopLyft"
         products={recommended}
         accent="accent"
-        href="/category/electronics"
+        href="/products"
       />
       <Newsletter />
     </>

@@ -36,9 +36,16 @@ model Product {
   badge      String?
   stockLeft  Int?
   stockTotal Int?
-  tags       String[] // "flash" | "deal" | "rec"
+  tags       String[] // "flash" | "deal" | "rec" | "new"
   image      String?
   sortOrder  Int         @default(0) // curated display order within rails/grids
+  // Trust-tiered moderation. A new seller's first listings are held (PENDING)
+  // until an admin approves them; once a store is trusted, listings auto-publish.
+  // Only PUBLISHED products appear in the public catalog. Defaults to PUBLISHED so
+  // seeded/curated products stay visible without a data backfill.
+  status         ProductStatus @default(PUBLISHED)
+  moderationNote String? // admin's reason when REJECTED / TAKEN_DOWN
+  reviewedAt     DateTime? // when an admin last actioned this product
   categoryId String
   category   Category    @relation(fields: [categoryId], references: [id])
   storeId    String
@@ -46,6 +53,15 @@ model Product {
   orderItems OrderItem[]
   sellerReviews SellerReview[]
   createdAt  DateTime    @default(now())
+
+  @@index([status])
+}
+
+enum ProductStatus {
+  PENDING // awaiting admin review (untrusted seller's early listings)
+  PUBLISHED // live in the public catalog
+  REJECTED // admin declined; seller may edit & resubmit
+  TAKEN_DOWN // pulled from sale after being live
 }
 
 // Owned by Better Auth (email + password). The extra fields/relations are ours.

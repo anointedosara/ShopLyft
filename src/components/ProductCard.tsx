@@ -11,6 +11,7 @@ export default function ProductCard({ product, flash = false }: { product: Produ
   const pct = discountPct(product.price, product.oldPrice);
   const saved = hydrated && isWishlisted(product.id);
   const soldOut = product.stockLeft != null && product.stockLeft <= 0;
+  const isNew = product.tags?.includes("new");
   const sold =
     product.stockLeft != null && product.stockTotal
       ? Math.round(((product.stockTotal - product.stockLeft) / product.stockTotal) * 100)
@@ -33,11 +34,18 @@ export default function ProductCard({ product, flash = false }: { product: Produ
               {product.glyph}
             </span>
           )}
-          {pct > 0 && (
-            <span className="absolute top-2 left-2 rounded-md bg-ink/85 text-white text-xs font-bold px-2 py-1">
-              -{pct}%
-            </span>
-          )}
+          <div className="absolute top-2 left-2 flex flex-col items-start gap-1">
+            {isNew && !soldOut && (
+              <span className="rounded-md bg-emerald-500 text-white text-xs font-bold px-2 py-1 shadow-sm">
+                New
+              </span>
+            )}
+            {pct > 0 && (
+              <span className="rounded-md bg-ink/85 text-white text-xs font-bold px-2 py-1">
+                -{pct}%
+              </span>
+            )}
+          </div>
           {product.badge && !soldOut && (
             <span className="absolute bottom-2 left-2 rounded-md bg-white/90 text-ink text-[10px] font-bold px-2 py-1 backdrop-blur">
               {product.badge}
